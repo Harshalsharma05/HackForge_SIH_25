@@ -18,9 +18,15 @@ app.use(cookieParser());
 
 // Import routes
 import authRoutes from "./routes/authRoutes.js";
+import tripRoutes from "./routes/tripRoutes.js";
+import locationRoutes from "./routes/locationRoutes.js";
+import geofenceRoutes from "./routes/geofenceRoutes.js";
 
 // Route declarations
 app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/trips", tripRoutes);
+app.use("/api/v1/location", locationRoutes);
+app.use("/api/v1/geofence", geofenceRoutes);
 
 app.get("/", (req, res) => {
   res.send("Tourist Safety System API is running....");

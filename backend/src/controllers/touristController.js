@@ -61,10 +61,6 @@ const registerTourist = asyncHandler(async (req, res) => {
     date_of_birth,
     gender,
     emergency_contacts,
-    itinerary,
-    trip_start_date,
-    trip_end_date,
-    accommodation_details,
     preferences = {},
   } = req.body;
 
@@ -82,35 +78,18 @@ const registerTourist = asyncHandler(async (req, res) => {
     throw new ApiError(409, "Tourist with email or phone already exists");
   }
 
-  // Generate digital ID and hash
-  const digital_id = await generateDigitalId();
-
-  // Set ID expiry date (default 30 days from now)
-  const id_expiry_date = new Date();
-  if (trip_end_date) {
-    id_expiry_date.setTime(new Date(trip_end_date).getTime());
-  } else {
-    id_expiry_date.setDate(id_expiry_date.getDate() + 30);
-  }
-
-  // Create tourist object
+  // Create tourist object (without trip-specific data)
   const tourist = await Tourist.create({
     name,
     email,
     password,
     phone,
-    digital_id,
-    id_expiry_date,
     kyc_id,
     kyc_document_type,
     nationality,
     date_of_birth: date_of_birth ? new Date(date_of_birth) : undefined,
     gender,
     emergency_contacts: emergency_contacts || [],
-    itinerary,
-    trip_start_date: trip_start_date ? new Date(trip_start_date) : undefined,
-    trip_end_date: trip_end_date ? new Date(trip_end_date) : undefined,
-    accommodation_details,
     preferences: {
       language: preferences.language || "english",
       tracking_consent: preferences.tracking_consent !== false,
@@ -118,17 +97,6 @@ const registerTourist = asyncHandler(async (req, res) => {
       family_tracking_consent: preferences.family_tracking_consent || false,
     },
   });
-
-  // Generate digital ID hash after creation
-  const digital_id_hash = generateDigitalIdHash({
-    name: tourist.name,
-    email: tourist.email,
-    kyc_id: tourist.kyc_id,
-    digital_id: tourist.digital_id,
-  });
-
-  tourist.digital_id_hash = digital_id_hash;
-  await tourist.save({ validateBeforeSave: false });
 
   // Get created tourist without password
   const createdTourist = await Tourist.findById(tourist._id).select(
@@ -145,7 +113,11 @@ const registerTourist = asyncHandler(async (req, res) => {
   return res
     .status(201)
     .json(
-      new ApiResponse(201, createdTourist, "Tourist registered successfully")
+      new ApiResponse(
+        201,
+        createdTourist,
+        "Tourist registered successfully. You can now create trips to get digital IDs."
+      )
     );
 });
 
@@ -157,7 +129,7 @@ const loginTourist = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Email is required");
   }
 
-  const tourist = await Tourist.findOne({ email });
+  const tourist = await Tourist.findOne({ email }).populate("current_trip_id");
 
   if (!tourist) {
     throw new ApiError(404, "Tourist does not exist");
@@ -169,9 +141,6 @@ const loginTourist = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Invalid tourist credentials");
   }
 
-  // Check if digital ID is expired
-  const isIdExpired = new Date() > tourist.id_expiry_date;
-
   const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
     tourist._id
   );
@@ -180,9 +149,9 @@ const loginTourist = asyncHandler(async (req, res) => {
   tourist.last_login = new Date();
   await tourist.save({ validateBeforeSave: false });
 
-  const loggedInTourist = await Tourist.findById(tourist._id).select(
-    "-password -refreshToken"
-  );
+  const loggedInTourist = await Tourist.findById(tourist._id)
+    .select("-password -refreshToken")
+    .populate("current_trip_id");
 
   const options = {
     httpOnly: true,
@@ -200,7 +169,7 @@ const loginTourist = asyncHandler(async (req, res) => {
           tourist: loggedInTourist,
           accessToken,
           refreshToken,
-          isIdExpired,
+          hasActiveTrip: !!loggedInTourist.current_trip_id,
         },
         "Tourist logged in successfully"
       )

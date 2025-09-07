@@ -20,13 +20,7 @@ const TouristSchema = new mongoose.Schema(
     name: { type: String, required: true },
     phone: { type: String, required: true },
 
-    // Digital ID
-    digital_id: { type: String, required: true, unique: true },
-    digital_id_hash: { type: String }, // for tamper-proof check
-    id_issue_date: { type: Date, default: Date.now },
-    id_expiry_date: { type: Date },
-
-    // KYC Information
+    // KYC Information (permanent for user)
     kyc_id: { type: String }, // Aadhaar/passport
     kyc_document_type: {
       type: String,
@@ -39,14 +33,14 @@ const TouristSchema = new mongoose.Schema(
     date_of_birth: { type: Date },
     gender: { type: String, enum: ["male", "female", "other"] },
 
-    // Emergency Contacts
+    // Emergency Contacts (default contacts for all trips)
     emergency_contacts: [emergencyContactSchema],
 
-    // Trip Details
-    itinerary: { type: String }, // simple text (expand later to array of places)
-    trip_start_date: { type: Date },
-    trip_end_date: { type: Date },
-    accommodation_details: { type: String },
+    // Current Active Trip (reference)
+    current_trip_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Trip",
+    },
 
     // Safety & Tracking
     safety_score: { type: Number, default: 100 }, // auto-updated

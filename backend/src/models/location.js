@@ -7,6 +7,11 @@ const LocationSchema = new mongoose.Schema(
       ref: "Tourist",
       required: true,
     },
+    trip_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Trip",
+      required: true,
+    },
     latitude: { type: Number, required: true },
     longitude: { type: Number, required: true },
     address: { type: String }, // reverse geocoded address
@@ -40,7 +45,8 @@ const LocationSchema = new mongoose.Schema(
 );
 
 // Indexes for geo queries
-LocationSchema.index({ tourist_id: 1, timestamp: -1 });
+LocationSchema.index({ tourist_id: 1, trip_id: 1, timestamp: -1 });
+LocationSchema.index({ trip_id: 1, timestamp: -1 });
 LocationSchema.index({ latitude: 1, longitude: 1 });
 LocationSchema.index({ timestamp: -1 });
 
