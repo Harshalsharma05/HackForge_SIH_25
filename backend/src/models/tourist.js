@@ -27,6 +27,7 @@ const TouristSchema = new mongoose.Schema(
       enum: ["aadhaar", "passport", "driving_license"],
     },
     kyc_verified: { type: Boolean, default: false },
+    kyc_otp_request_id: { type: String },
 
     // Personal Details
     nationality: { type: String, default: "Indian" },
