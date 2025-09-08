@@ -130,6 +130,24 @@ const stopLocationTracking = asyncHandler(async (req, res) => {
     );
 });
 
+// Convert connection quality string to numeric value
+const convertConnectionQuality = (quality) => {
+  const qualityMap = {
+    poor: 1,
+    fair: 2,
+    good: 3,
+    excellent: 4,
+  };
+
+  // If it's already a number, return it
+  if (typeof quality === "number") {
+    return quality;
+  }
+
+  // If it's a string, convert it
+  return qualityMap[quality?.toLowerCase()] || 2; // Default to 'fair' if unknown
+};
+
 // UPDATE LOCATION (Called via Socket.IO and HTTP)
 const updateLocation = async (locationData) => {
   try {
@@ -173,9 +191,9 @@ const updateLocation = async (locationData) => {
       is_in_safe_zone: geoFenceCheck.isInSafeZone,
       current_geofence: geoFenceCheck.currentGeoFence,
       device_info: {
-        battery_level,
-        signal_strength: connection_quality,
-        device_id: locationData.device_id,
+        battery_level: battery_level || null,
+        signal_strength: convertConnectionQuality(connection_quality),
+        device_id: locationData.device_id || null,
       },
     });
 
@@ -350,4 +368,5 @@ export {
   checkNearbyGeoFences,
   calculateDistance,
   checkGeoFences,
+  convertConnectionQuality,
 };
