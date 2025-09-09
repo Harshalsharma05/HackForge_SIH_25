@@ -224,9 +224,31 @@ const updateLocation = async (locationData) => {
 
 // HTTP endpoint for location update
 const updateLocationHTTP = asyncHandler(async (req, res) => {
+  const {
+    trip_id,
+    latitude,
+    longitude,
+    accuracy,
+    altitude,
+    speed,
+    battery_level,
+    connection_quality,
+    timestamp,
+  } = req.body;
+
   const locationData = {
     tourist_id: req.tourist._id,
-    ...req.body,
+    trip_id,
+    coordinates: {
+      latitude,
+      longitude,
+      accuracy,
+      altitude,
+      speed,
+    },
+    battery_level,
+    connection_quality,
+    timestamp,
   };
 
   const result = await updateLocation(locationData);
@@ -236,7 +258,7 @@ const updateLocationHTTP = asyncHandler(async (req, res) => {
   }
 
   const anomalyAlert = await checkLocationForAnomalies(
-    req.body.trip_id,
+    trip_id,
     result.location
   );
 
@@ -393,7 +415,8 @@ const getHeatmapData = asyncHandler(async (req, res) => {
       },
     },
     {
-      $lookup: { // Join with Tourist model to get their name
+      $lookup: {
+        // Join with Tourist model to get their name
         from: "tourists",
         localField: "tourist_id",
         foreignField: "_id",
@@ -404,7 +427,8 @@ const getHeatmapData = asyncHandler(async (req, res) => {
       $unwind: "$touristInfo", // Deconstruct the touristInfo array
     },
     {
-      $project: { // Shape the final output
+      $project: {
+        // Shape the final output
         _id: 0,
         trip_id: "$_id",
         tourist_name: "$touristInfo.name",
@@ -429,9 +453,14 @@ const getHeatmapData = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(new ApiResponse(200, responseData, "Heatmap and cluster data fetched successfully"));
+    .json(
+      new ApiResponse(
+        200,
+        responseData,
+        "Heatmap and cluster data fetched successfully"
+      )
+    );
 });
-
 
 export {
   startLocationTracking,

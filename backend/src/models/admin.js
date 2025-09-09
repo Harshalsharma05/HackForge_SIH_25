@@ -37,8 +37,8 @@ const AdminSchema = new mongoose.Schema(
 );
 
 // Indexes
-AdminSchema.index({ email: 1 });
-AdminSchema.index({ username: 1 });
+// email already has unique: true, so removing duplicate index
+// username already has unique: true, so removing duplicate index
 AdminSchema.index({ role: 1 });
 
 AdminSchema.methods.isPasswordCorrect = async function (password) {

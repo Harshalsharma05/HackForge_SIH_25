@@ -65,9 +65,10 @@ export const checkJurisdiction = asyncHandler(async (req, res, next) => {
   }
 
   // Check if admin has jurisdiction over the requested area
-  const requestedZone = (req.query && req.query.zone) || 
-                       (req.body && req.body.zone) || 
-                       (req.params && req.params.zone);
+  const requestedZone =
+    (req.query && req.query.zone) ||
+    (req.body && req.body.zone) ||
+    (req.params && req.params.zone);
 
   if (
     requestedZone &&
