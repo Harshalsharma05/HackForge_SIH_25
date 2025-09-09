@@ -24,6 +24,8 @@ import geofenceRoutes from "./routes/geofenceRoutes.js";
 import sosRoutes from "./routes/sosRoutes.js";
 import kycRoutes from "./routes/kycRoutes.js";
 import blockchainRoutes from "./routes/blockchainRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+import dashboardRoutes from "./routes/dashboardRoutes.js";
 
 // Route declarations
 app.use("/api/v1/auth", authRoutes);
@@ -33,6 +35,8 @@ app.use("/api/v1/geofence", geofenceRoutes);
 app.use("/api/v1/alert", sosRoutes);
 app.use("/api/v1/kyc", kycRoutes);
 app.use("/api/v1/blockchain", blockchainRoutes);
+app.use("/api/v1/admin", adminRoutes);
+app.use("/api/v1/dashboard", dashboardRoutes);
 
 app.get("/", (req, res) => {
   res.send("Tourist Safety System API is running....");
