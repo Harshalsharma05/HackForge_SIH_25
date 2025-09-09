@@ -1,15 +1,17 @@
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 import Tourist from "../models/tourist.js";
+import Admin from "../models/admin.js";
 import Trip from "../models/trip.js";
 import { updateLocation } from "../controllers/locationController.js";
 import { checkLocationForAnomalies } from "./aiService.js";
 
 // Store active connections
 const activeConnections = new Map();
+const adminConnections = new Map();
 const tripRooms = new Map();
 
-// Socket authentication middleware
+// Socket authentication middleware for tourists
 const authenticateSocket = async (socket, next) => {
   try {
     const token =
@@ -30,9 +32,38 @@ const authenticateSocket = async (socket, next) => {
     }
 
     socket.tourist = tourist;
+    socket.userType = "tourist";
     next();
   } catch (error) {
     next(new Error("Authentication failed"));
+  }
+};
+
+// Socket authentication middleware for admins
+const authenticateAdminSocket = async (socket, next) => {
+  try {
+    const token =
+      socket.handshake.auth.token ||
+      socket.handshake.headers.authorization?.replace("Bearer ", "");
+
+    if (!token) {
+      return next(new Error("Authentication token required"));
+    }
+
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    const admin = await Admin.findById(decoded._id).select(
+      "-password -refresh_token"
+    );
+
+    if (!admin || !admin.is_active) {
+      return next(new Error("Invalid admin token or account deactivated"));
+    }
+
+    socket.admin = admin;
+    socket.userType = "admin";
+    next();
+  } catch (error) {
+    next(new Error("Admin authentication failed"));
   }
 };
 
@@ -48,10 +79,16 @@ const initializeSocketIO = (server) => {
     pingInterval: 25000,
   });
 
-  // Apply authentication middleware
-  io.use(authenticateSocket);
+  // Tourist namespace
+  const touristNamespace = io.of("/tourist");
+  touristNamespace.use(authenticateSocket);
 
-  io.on("connection", (socket) => {
+  // Admin namespace
+  const adminNamespace = io.of("/admin");
+  adminNamespace.use(authenticateAdminSocket);
+
+  // TOURIST CONNECTIONS
+  touristNamespace.on("connection", (socket) => {
     console.log(
       `🔗 Tourist connected: ${socket.tourist.name} (${socket.tourist._id})`
     );
@@ -62,6 +99,13 @@ const initializeSocketIO = (server) => {
       tourist: socket.tourist,
       connectedAt: new Date(),
       lastActivity: new Date(),
+    });
+
+    // Notify admin dashboard about new tourist online
+    adminNamespace.emit("tourist_online", {
+      tourist_id: socket.tourist._id,
+      name: socket.tourist.name,
+      timestamp: new Date(),
     });
 
     // JOIN TRIP ROOM
@@ -104,7 +148,7 @@ const initializeSocketIO = (server) => {
         });
 
         // Notify authorities dashboard if needed
-        socket.to("authorities").emit("tourist_online", {
+        adminNamespace.emit("tourist_online", {
           tourist_id: socket.tourist._id,
           trip_id,
           timestamp: new Date(),
@@ -191,7 +235,7 @@ const initializeSocketIO = (server) => {
           });
 
           // Send to authorities dashboard
-          socket.to("authorities").emit("location_update", {
+          adminNamespace.emit("location_update", {
             tourist_id: socket.tourist._id,
             trip_id,
             coordinates,
@@ -209,22 +253,22 @@ const initializeSocketIO = (server) => {
               timestamp: new Date(),
             };
 
-          const anomalyAlert = await checkLocationForAnomalies(
-            trip_id,
-            locationResult.location // We need to pass the newly created location document
-          );
+            const anomalyAlert = await checkLocationForAnomalies(
+              trip_id,
+              locationResult.location // We need to pass the newly created location document
+            );
 
-          if (anomalyAlert) {
-            // An anomaly was detected and an alert was created
-            // Notify the authorities dashboard in real-time
-            socket.to("authorities").emit("new_alert", anomalyAlert);
-          }
+            if (anomalyAlert) {
+              // An anomaly was detected and an alert was created
+              // Notify the authorities dashboard in real-time
+              adminNamespace.emit("new_alert", anomalyAlert);
+            }
 
             // Alert tourist
             socket.emit("geofence_alert", alertData);
 
             // Alert authorities
-            socket.to("authorities").emit("geofence_violation", alertData);
+            adminNamespace.emit("geofence_violation", alertData);
 
             console.log(`⚠️ Geo-fence violation by ${socket.tourist.name}`);
           }
@@ -256,7 +300,7 @@ const initializeSocketIO = (server) => {
         };
 
         // Broadcast emergency to all authorities
-        socket.to("authorities").emit("emergency_alert", alertData);
+        adminNamespace.emit("emergency_alert", alertData);
 
         // Confirm alert sent
         socket.emit("emergency_sent", {
@@ -296,7 +340,7 @@ const initializeSocketIO = (server) => {
       }
 
       // Notify authorities
-      socket.to("authorities").emit("tourist_offline", {
+      adminNamespace.emit("tourist_offline", {
         tourist_id: socket.tourist._id,
         trip_id: socket.currentTripId,
         timestamp: new Date(),
@@ -307,6 +351,81 @@ const initializeSocketIO = (server) => {
     // Handle connection errors
     socket.on("error", (error) => {
       console.error(`Socket error for ${socket.tourist.name}:`, error);
+    });
+  });
+
+  // ADMIN CONNECTIONS
+  adminNamespace.on("connection", (socket) => {
+    console.log(
+      `🛡️ Admin connected: ${socket.admin.name} (${socket.admin.role})`
+    );
+
+    // Store admin connection
+    adminConnections.set(socket.admin._id.toString(), {
+      socketId: socket.id,
+      admin: socket.admin,
+      connectedAt: new Date(),
+      lastActivity: new Date(),
+    });
+
+    // Join admin to their jurisdiction room
+    const jurisdictionRoom = `jurisdiction_${socket.admin.jurisdiction}`;
+    socket.join(jurisdictionRoom);
+
+    // Join admin to their role room
+    const roleRoom = `role_${socket.admin.role}`;
+    socket.join(roleRoom);
+
+    // Send current active tourists count
+    socket.emit("dashboard_init", {
+      admin: {
+        name: socket.admin.name,
+        role: socket.admin.role,
+        jurisdiction: socket.admin.jurisdiction,
+        assigned_zones: socket.admin.assigned_zones,
+      },
+      active_tourists: activeConnections.size,
+      connected_at: new Date(),
+    });
+
+    // Admin requests live dashboard data
+    socket.on("request_live_data", () => {
+      // Send current active tourists
+      const activeTouristsData = Array.from(activeConnections.values()).map(
+        (conn) => ({
+          tourist_id: conn.tourist._id,
+          name: conn.tourist.name,
+          connected_at: conn.connectedAt,
+          last_activity: conn.lastActivity,
+        })
+      );
+
+      socket.emit("live_data_update", {
+        active_tourists: activeTouristsData,
+        total_count: activeTouristsData.length,
+        timestamp: new Date(),
+      });
+    });
+
+    // Admin heartbeat
+    socket.on("admin_heartbeat", () => {
+      const connection = adminConnections.get(socket.admin._id.toString());
+      if (connection) {
+        connection.lastActivity = new Date();
+      }
+      socket.emit("admin_heartbeat_ack");
+    });
+
+    // Admin disconnect
+    socket.on("disconnect", (reason) => {
+      console.log(
+        `🛡️ Admin disconnected: ${socket.admin.name} - Reason: ${reason}`
+      );
+      adminConnections.delete(socket.admin._id.toString());
+    });
+
+    socket.on("error", (error) => {
+      console.error(`Admin socket error for ${socket.admin.name}:`, error);
     });
   });
 
@@ -325,26 +444,40 @@ const initializeSocketIO = (server) => {
     }
   }, 5 * 60 * 1000);
 
-  return io;
+  return { io, touristNamespace, adminNamespace };
 };
 
 // Utility functions for external use
 const getActiveConnections = () => activeConnections;
+const getAdminConnections = () => adminConnections;
 const getTripRooms = () => tripRooms;
 
-const broadcastToTrip = (io, trip_id, event, data) => {
+const broadcastToTrip = (touristNamespace, trip_id, event, data) => {
   const roomName = `trip_${trip_id}`;
-  io.to(roomName).emit(event, data);
+  touristNamespace.to(roomName).emit(event, data);
 };
 
-const broadcastToAuthorities = (io, event, data) => {
-  io.to("authorities").emit(event, data);
+const broadcastToAuthorities = (adminNamespace, event, data) => {
+  adminNamespace.emit(event, data);
+};
+
+const broadcastToJurisdiction = (adminNamespace, jurisdiction, event, data) => {
+  const roomName = `jurisdiction_${jurisdiction}`;
+  adminNamespace.to(roomName).emit(event, data);
+};
+
+const broadcastToRole = (adminNamespace, role, event, data) => {
+  const roomName = `role_${role}`;
+  adminNamespace.to(roomName).emit(event, data);
 };
 
 export {
   initializeSocketIO,
   getActiveConnections,
+  getAdminConnections,
   getTripRooms,
   broadcastToTrip,
   broadcastToAuthorities,
+  broadcastToJurisdiction,
+  broadcastToRole,
 };

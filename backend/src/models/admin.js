@@ -1,4 +1,6 @@
 import mongoose from "mongoose";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 const AdminSchema = new mongoose.Schema(
   {
@@ -26,6 +28,7 @@ const AdminSchema = new mongoose.Schema(
     // Status
     is_active: { type: Boolean, default: true },
     last_login: { type: Date },
+    refresh_token: { type: String }, // For JWT refresh token
     created_at: { type: Date, default: Date.now },
   },
   {
@@ -67,6 +70,5 @@ AdminSchema.methods.generateRefreshToken = function () {
     }
   );
 };
-
 
 export default mongoose.model("Admin", AdminSchema);
