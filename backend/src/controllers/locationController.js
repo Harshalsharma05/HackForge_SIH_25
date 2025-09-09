@@ -473,4 +473,5 @@ export {
   calculateDistance,
   checkGeoFences,
   convertConnectionQuality,
+  getHeatmapData,
 };

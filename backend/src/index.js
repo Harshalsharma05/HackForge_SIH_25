@@ -1,12 +1,12 @@
 import dotenv from "dotenv";
+dotenv.config({
+  path: "./.env",
+});
 import { createServer } from "http";
 import connectDB from "./db/connectDB.js";
 import app from "./app.js";
 import { initializeSocketIO } from "./utils/socketIO.js";
 
-dotenv.config({
-  path: "./.env",
-});
 
 const port = process.env.PORT || 8000;
 
