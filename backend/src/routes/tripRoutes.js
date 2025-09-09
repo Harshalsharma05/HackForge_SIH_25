@@ -8,6 +8,7 @@ import {
   activateTrip,
   completeTrip,
   verifyTripDigitalId,
+  getBlockchainDigitalId,
 } from "../controllers/tripController.js";
 import { verifyJWT, optionalAuth } from "../middlewares/auth.middleware.js";
 
@@ -21,6 +22,7 @@ router.route("/:tripId").get(verifyJWT, getTripById);
 router.route("/:tripId/update").patch(verifyJWT, updateTrip);
 router.route("/:tripId/activate").post(verifyJWT, activateTrip);
 router.route("/:tripId/complete").post(verifyJWT, completeTrip);
+router.route("/:tripId/blockchain").get(verifyJWT, getBlockchainDigitalId);
 
 // Public route (for authorities to verify digital ID)
 router.route("/verify/:digital_id").get(verifyTripDigitalId);

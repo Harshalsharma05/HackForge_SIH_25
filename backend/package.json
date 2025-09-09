@@ -5,21 +5,32 @@
   "main": "index.js",
   "scripts": {
     "start": "node -r dotenv/config --experimental-json-modules src/index.js",
-    "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js"
+    "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js",
+    "populate-geofences": "node -r dotenv/config --experimental-json-modules src/scripts/populateGeofences.js",
+    "test-blockchain": "node -r dotenv/config --experimental-json-modules src/scripts/testBlockchain.js",
+    "test-connection": "node -r dotenv/config --experimental-json-modules src/scripts/testBasicConnection.js",
+    "test-arbitrum": "node -r dotenv/config --experimental-json-modules src/scripts/testArbitrumConnection.js",
+    "get-tokens": "node -r dotenv/config --experimental-json-modules src/scripts/getFreeTokens.js",
+    "deploy-contract": "node -r dotenv/config --experimental-json-modules src/scripts/deployContract.js",
+    "deploy-arbitrum": "node -r dotenv/config --experimental-json-modules src/scripts/deployArbitrumContract.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "axios": "^1.6.0",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
     "dotenv": "^17.2.2",
+    "ethers": "^6.8.1",
     "express": "^5.1.0",
+    "ipfs-http-client": "^60.0.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.18.0",
+    "qrcode": "^1.5.3",
     "socket.io": "^4.8.1",
     "twilio": "^5.9.0"
   },

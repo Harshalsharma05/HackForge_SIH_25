@@ -20,7 +20,7 @@ const TouristSchema = new mongoose.Schema(
     name: { type: String, required: true },
     phone: { type: String, required: true },
 
-    // KYC Information (permanent for user)
+    // KYC Information (Enhanced for DigiLocker)
     kyc_id: { type: String }, // Aadhaar/passport
     kyc_document_type: {
       type: String,
@@ -29,6 +29,28 @@ const TouristSchema = new mongoose.Schema(
     kyc_verified: { type: Boolean, default: false },
     kyc_otp_request_id: { type: String },
 
+    // DigiLocker Integration
+    kyc_digilocker_data: {
+      aadhaar_number: { type: String }, // Masked Aadhaar
+      name_on_aadhaar: { type: String },
+      dob_on_aadhaar: { type: Date },
+      gender_on_aadhaar: { type: String },
+      address_on_aadhaar: {
+        house: { type: String },
+        street: { type: String },
+        landmark: { type: String },
+        locality: { type: String },
+        vtc: { type: String },
+        district: { type: String },
+        state: { type: String },
+        pincode: { type: String },
+      },
+      verification_timestamp: { type: Date },
+      consent_token: { type: String }, // DigiLocker consent token
+      request_id: { type: String }, // DigiLocker request ID
+      photo_url: { type: String }, // Aadhaar photo URL (if available)
+    },
+
     // Personal Details
     nationality: { type: String, default: "Indian" },
     date_of_birth: { type: Date },
@@ -36,6 +58,14 @@ const TouristSchema = new mongoose.Schema(
 
     // Emergency Contacts (default contacts for all trips)
     emergency_contacts: [emergencyContactSchema],
+
+    // Blockchain Wallet Integration
+    blockchain_wallet: {
+      address: { type: String }, // User's blockchain address
+      private_key_encrypted: { type: String }, // Encrypted private key
+      wallet_created_at: { type: Date },
+      last_used: { type: Date },
+    },
 
     // Current Active Trip (reference)
     current_trip_id: {
@@ -70,11 +100,14 @@ const TouristSchema = new mongoose.Schema(
   }
 );
 
-// Index for geospatial queries
+// Index for geospatial queries and blockchain
 TouristSchema.index({
   "current_location.latitude": 1,
   "current_location.longitude": 1,
 });
+TouristSchema.index({ "blockchain_wallet.address": 1 });
+TouristSchema.index({ "kyc_digilocker_data.aadhaar_number": 1 });
+TouristSchema.index({ kyc_verified: 1 });
 
 TouristSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
@@ -113,6 +146,28 @@ TouristSchema.methods.generateRefreshToken = function () {
       expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
     }
   );
+};
+
+// Method to check if tourist is eligible for blockchain digital ID
+TouristSchema.methods.isEligibleForBlockchainID = function () {
+  return (
+    this.kyc_verified &&
+    this.kyc_digilocker_data &&
+    this.kyc_digilocker_data.aadhaar_number &&
+    this.is_active
+  );
+};
+
+// Method to get sanitized data for blockchain storage
+TouristSchema.methods.getBlockchainData = function () {
+  return {
+    name: this.name,
+    gender: this.gender,
+    nationality: this.nationality,
+    kyc_verified: this.kyc_verified,
+    verification_timestamp: this.kyc_digilocker_data?.verification_timestamp,
+    // Note: Sensitive data like Aadhaar number will be encrypted before blockchain storage
+  };
 };
 
 export default mongoose.model("Tourist", TouristSchema);

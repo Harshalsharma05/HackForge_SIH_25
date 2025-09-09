@@ -22,7 +22,8 @@ import tripRoutes from "./routes/tripRoutes.js";
 import locationRoutes from "./routes/locationRoutes.js";
 import geofenceRoutes from "./routes/geofenceRoutes.js";
 import sosRoutes from "./routes/sosRoutes.js";
-import kycRoutes from "./routes/kycRoutes.js"
+import kycRoutes from "./routes/kycRoutes.js";
+import blockchainRoutes from "./routes/blockchainRoutes.js";
 
 // Route declarations
 app.use("/api/v1/auth", authRoutes);
@@ -30,7 +31,8 @@ app.use("/api/v1/trips", tripRoutes);
 app.use("/api/v1/location", locationRoutes);
 app.use("/api/v1/geofence", geofenceRoutes);
 app.use("/api/v1/alert", sosRoutes);
-app.use("/api/v1/kyc" , kycRoutes)
+app.use("/api/v1/kyc", kycRoutes);
+app.use("/api/v1/blockchain", blockchainRoutes);
 
 app.get("/", (req, res) => {
   res.send("Tourist Safety System API is running....");
