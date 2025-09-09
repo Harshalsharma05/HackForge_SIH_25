@@ -1,0 +1,106 @@
+.login-page-container {
+    width: 100%;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    background-color: var(--background-light);
+    padding: 1rem;
+}
+
+.auth-login-card {
+    background-color: var(--card-bg);
+    padding: 2.5rem 3rem;
+    border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 450px;
+    text-align: center;
+}
+
+.auth-login-header {
+    margin-bottom: 2rem;
+}
+
+.auth-login-header .header-icon {
+    font-size: 3em;
+    color: var(--primary-purple);
+    margin-bottom: 1rem;
+}
+
+.auth-login-header h2 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.8em;
+}
+
+.auth-login-header p {
+    margin: 0.5rem 0 0 0;
+    color: var(--text-secondary);
+}
+
+.auth-login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.input-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-group .input-icon {
+    position: absolute;
+    left: 15px;
+    color: var(--text-secondary);
+    font-size: 1.1em;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 1rem 1rem 1rem 3rem; /* Left padding for icon */
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    font-size: 1em;
+    background-color: var(--background-light);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: var(--primary-purple);
+    box-shadow: 0 0 0 3px rgba(103, 58, 183, 0.2);
+}
+
+.auth-signin-button {
+    background-color: var(--primary-purple);
+    color: white;
+    padding: 1rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.2s;
+    margin-top: 1rem;
+}
+
+.auth-signin-button:hover {
+    background-color: #5a309e;
+    transform: translateY(-2px);
+}
+
+.auth-login-footer {
+    margin-top: 1.5rem;
+}
+
+.auth-login-footer a {
+    color: var(--primary-purple);
+    text-decoration: none;
+    font-size: 0.9em;
+}
+
+.auth-login-footer a:hover {
+    text-decoration: underline;
+}
