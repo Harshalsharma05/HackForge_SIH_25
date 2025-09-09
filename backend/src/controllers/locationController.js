@@ -4,6 +4,7 @@ import Trip from "../models/trip.js";
 import GeoFence from "../models/geofence.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { checkLocationForAnomalies } from "../utils/aiService.js";
 
 // Calculate distance between two coordinates (Haversine formula)
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -204,6 +205,7 @@ const updateLocation = async (locationData) => {
     // Return result with geo-fence info
     return {
       success: true,
+      location: location,
       location_id: location._id,
       safety_status: {
         is_safe: geoFenceCheck.isInSafeZone,
@@ -231,6 +233,17 @@ const updateLocationHTTP = asyncHandler(async (req, res) => {
 
   if (!result.success) {
     throw new ApiError(400, result.error);
+  }
+
+  const anomalyAlert = await checkLocationForAnomalies(
+    req.body.trip_id,
+    result.location
+  );
+
+  if (anomalyAlert) {
+    // If you have a way to broadcast to admins from here (e.g., via the main io instance)
+    // you could do that. For now, the alert is saved in the DB.
+    console.log("Anomaly detected via HTTP, alert saved.");
   }
 
   return res
@@ -357,6 +370,68 @@ const checkNearbyGeoFences = asyncHandler(async (req, res) => {
       )
     );
 });
+
+// GET HEATMAP AND CLUSTER DATA
+const getHeatmapData = asyncHandler(async (req, res) => {
+  // 1. Get recent locations for the heatmap (e.g., last 24 hours)
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const recentLocations = await Location.find({
+    timestamp: { $gte: twentyFourHoursAgo },
+  }).select("latitude longitude"); // Select only what's needed
+
+  // 2. Get the latest location for each active tourist for cluster markers
+  // We use an aggregation pipeline to get the most recent document per trip_id
+  const activeTouristClusters = await Location.aggregate([
+    { $sort: { timestamp: -1 } }, // Sort by most recent first
+    {
+      $group: {
+        _id: "$trip_id", // Group by trip
+        tourist_id: { $first: "$tourist_id" },
+        latitude: { $first: "$latitude" },
+        longitude: { $first: "$longitude" },
+        timestamp: { $first: "$timestamp" },
+      },
+    },
+    {
+      $lookup: { // Join with Tourist model to get their name
+        from: "tourists",
+        localField: "tourist_id",
+        foreignField: "_id",
+        as: "touristInfo",
+      },
+    },
+    {
+      $unwind: "$touristInfo", // Deconstruct the touristInfo array
+    },
+    {
+      $project: { // Shape the final output
+        _id: 0,
+        trip_id: "$_id",
+        tourist_name: "$touristInfo.name",
+        latitude: "$latitude",
+        longitude: "$longitude",
+        last_updated: "$timestamp",
+      },
+    },
+  ]);
+
+  // 3. Get high-risk geo-fences to display on the map
+  const highRiskZones = await GeoFence.find({
+    risk_level: { $in: ["high", "critical"] },
+    is_active: true,
+  }).select("name latitude longitude radius_km risk_level zone_type");
+
+  const responseData = {
+    heatmap: recentLocations,
+    clusters: activeTouristClusters,
+    risk_zones: highRiskZones,
+  };
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, responseData, "Heatmap and cluster data fetched successfully"));
+});
+
 
 export {
   startLocationTracking,
