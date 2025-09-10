@@ -3,24 +3,25 @@
   display: flex;
   height: 100vh;
   width: 100%;
-  overflow-x: hidden; /* Prevent horizontal scroll */
+  overflow-x: hidden;
 }
 
 .main-content {
   flex-grow: 1;
-  padding: 2rem;
+  padding: clamp(1rem, 4vw, 2rem);
   overflow-y: auto;
   transition: margin-left 0.3s ease;
+  min-width: 0;
 }
 
 /* Sidebar Styling */
 .sidebar {
-  width: 280px;
+  width: clamp(250px, 20vw, 280px);
   background-color: var(--card-bg);
   padding: 1.5rem 0;
   display: flex;
   flex-direction: column;
-  flex-shrink: 0; /* Prevent sidebar from shrinking */
+  flex-shrink: 0;
   transition: transform 0.3s ease-in-out;
   border-right: 1px solid var(--border-light);
 }
@@ -74,11 +75,36 @@
 .logout-item { margin-top: auto; }
 
 /* Header Styling */
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
-.header-left { display: flex; align-items: center; gap: 1rem; }
-.header h1 { margin: 0; font-size: 2em; }
-.header-right { display: flex; align-items: center; gap: 1rem; }
-.header-profile-icon { width: 40px; height: 40px; border-radius: 50%; background: var(--light-purple-bg); }
+.header { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  margin-bottom: clamp(1rem, 3vw, 2rem);
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.header-left { 
+  display: flex; 
+  align-items: center; 
+  gap: clamp(0.5rem, 2vw, 1rem);
+  min-width: 0;
+}
+.header h1 { 
+  margin: 0; 
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  word-break: break-word;
+}
+.header-right { 
+  display: flex; 
+  align-items: center; 
+  gap: clamp(0.5rem, 2vw, 1rem);
+}
+.header-profile-icon { 
+  width: clamp(35px, 6vw, 40px); 
+  height: clamp(35px, 6vw, 40px); 
+  border-radius: 50%; 
+  background: var(--light-purple-bg); 
+}
 
 /* Hamburger Menu Toggle - HIDDEN BY DEFAULT on large screens */
 .menu-toggle {
@@ -93,8 +119,8 @@
 /* Dashboard Grid */
 .dashboard-grid {
   display: grid;
-  gap: 1.5rem;
-  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(1rem, 2.5vw, 1.5rem);
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
   grid-template-areas:
     "userinfo safety safety"
     "quickaccess quickaccess quickaccess"
@@ -105,8 +131,8 @@
 /* Generic Card Styling */
 .card {
   background-color: var(--card-bg);
-  padding: 1.5rem;
-  border-radius: 16px;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  border-radius: clamp(12px, 2vw, 16px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--border-light);
 }
@@ -121,9 +147,23 @@
 .safety-score-text h3 { margin: 0; }
 .quick-access-card { grid-area: quickaccess; }
 .quick-access-card h2 { margin-top: 0; }
-.quick-access-icons { display: flex; justify-content: space-around; text-align: center; flex-wrap: wrap; gap: 1rem; }
+.quick-access-icons { 
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
+  gap: clamp(0.5rem, 2vw, 1rem);
+  text-align: center;
+}
 .quick-access-item { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; cursor: pointer; color: var(--text-secondary); }
-.quick-access-item .icon-wrapper { width: 50px; height: 50px; border-radius: 50%; background: var(--background-light); display: grid; place-items: center; font-size: 1.5rem; color: var(--primary-purple); }
+.quick-access-item .icon-wrapper { 
+  width: clamp(40px, 8vw, 50px); 
+  height: clamp(40px, 8vw, 50px); 
+  border-radius: 50%; 
+  background: var(--background-light); 
+  display: grid; 
+  place-items: center; 
+  font-size: clamp(1.2rem, 3vw, 1.5rem); 
+  color: var(--primary-purple); 
+}
 .updates-section { grid-area: updates; display: flex; gap: 1.5rem; }
 .updates-card { flex: 1; }
 .updates-card h3 { margin-top: 0; display: flex; align-items: center; gap: 0.5rem; }
@@ -139,8 +179,32 @@
 /* ===== RESPONSIVE MEDIA QUERIES ===== */
 /* =================================== */
 
-/* For Tablets and smaller desktops (e.g., up to 1200px) */
-@media (max-width: 1200px) {
+/* Large screens (1400px+) */
+@media (min-width: 1400px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-areas:
+      "userinfo userinfo safety safety"
+      "quickaccess quickaccess quickaccess quickaccess"
+      "updates updates updates updates"
+      "panic panic panic panic";
+  }
+}
+
+/* Desktop and large tablets (1024px - 1399px) */
+@media (max-width: 1399px) and (min-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-areas:
+      "userinfo safety safety"
+      "quickaccess quickaccess quickaccess"
+      "updates updates updates"
+      "panic panic panic";
+  }
+}
+
+/* Tablets (768px - 1023px) */
+@media (max-width: 1023px) and (min-width: 768px) {
   .dashboard-grid {
     grid-template-columns: 1fr 1fr;
     grid-template-areas:
@@ -149,40 +213,30 @@
       "updates updates"
       "panic panic";
   }
-}
-
-/* For Tablets (e.g., up to 992px) - Sidebar behavior changes */
-@media (max-width: 992px) {
+  
   .sidebar {
-    position: fixed; /* Use fixed to stay in place on scroll */
+    position: fixed;
     left: 0;
     top: 0;
     bottom: 0;
     z-index: 1000;
-    transform: translateX(-100%); /* Hide sidebar off-screen by default */
+    transform: translateX(-100%);
+    width: 280px;
   }
 
   .sidebar.open {
-    transform: translateX(0); /* Show sidebar when it has the 'open' class */
+    transform: translateX(0);
   }
 
   .menu-toggle {
-    display: block; /* Show the hamburger button */
+    display: block;
   }
 }
 
-/* For Mobile phones (e.g., up to 768px) - Full stacking */
-@media (max-width: 768px) {
-  .main-content {
-    padding: 1rem;
-  }
-
-  .header h1 {
-    font-size: 1.5em;
-  }
-
+/* Mobile landscape and small tablets (576px - 767px) */
+@media (max-width: 767px) and (min-width: 576px) {
   .dashboard-grid {
-    grid-template-columns: 1fr; /* Single column layout */
+    grid-template-columns: 1fr;
     grid-template-areas:
       "userinfo"
       "safety"
@@ -192,6 +246,69 @@
   }
 
   .updates-section {
-    flex-direction: column; /* Stack the alert cards vertically */
+    flex-direction: column;
+  }
+  
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 1000;
+    transform: translateX(-100%);
+    width: 100vw;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .menu-toggle {
+    display: block;
+  }
+}
+
+/* Mobile portrait (up to 575px) */
+@media (max-width: 575px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "userinfo"
+      "safety"
+      "quickaccess"
+      "updates"
+      "panic";
+    gap: 1rem;
+  }
+
+  .updates-section {
+    flex-direction: column;
+  }
+  
+  .header {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 1000;
+    transform: translateX(-100%);
+    width: 100vw;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .menu-toggle {
+    display: block;
+  }
+  
+  .quick-access-icons {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

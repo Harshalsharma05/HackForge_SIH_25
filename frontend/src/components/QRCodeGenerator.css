@@ -3,6 +3,10 @@
   padding: 0;
   background: #f8f9fa;
   min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .qr-generator.loading,
@@ -56,22 +60,36 @@
 .qr-header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 40px 30px;
+  padding: clamp(30px, 5vw, 40px) clamp(20px, 4vw, 30px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: clamp(20px, 4vw, 30px);
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  width: 100%;
+}
+
+.qr-header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
+  width: 100%;
+  max-width: 1400px;
+  flex-wrap: wrap;
+  gap: var(--space-md);
 }
 
 .header-content h2 {
   margin: 0 0 8px 0;
-  font-size: 2.5rem;
+  font-size: clamp(2rem, 5vw, 2.5rem);
   font-weight: 700;
+  word-break: break-word;
 }
 
 .header-content p {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: clamp(1rem, 2.5vw, 1.1rem);
   opacity: 0.9;
 }
 
@@ -83,15 +101,16 @@
 .status-badge {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  border-radius: 25px;
+  gap: clamp(6px, 1.5vw, 8px);
+  padding: clamp(10px, 2vw, 12px) clamp(15px, 3vw, 20px);
+  border-radius: clamp(20px, 4vw, 25px);
   color: white;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: clamp(0.8rem, 2vw, 0.9rem);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
 }
 
 .status-badge.verified {
@@ -110,22 +129,25 @@
 /* Main Content */
 .qr-content {
   display: grid;
-  grid-template-columns: 1fr 400px;
-  gap: 30px;
-  padding: 0 30px 30px 30px;
+  grid-template-columns: 1fr min(400px, 35vw);
+  gap: clamp(20px, 4vw, 30px);
+  padding: 0 clamp(20px, 4vw, 30px) clamp(20px, 4vw, 30px) clamp(20px, 4vw, 30px);
   max-width: 1400px;
   margin: 0 auto;
+  width: 100%;
+  justify-content: center;
 }
 
 /* QR Card */
 .qr-card {
   background: white;
-  border-radius: 20px;
-  padding: 30px;
+  border-radius: clamp(15px, 3vw, 20px);
+  padding: clamp(20px, 5vw, 30px);
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
-  gap: 30px;
+  gap: clamp(20px, 4vw, 30px);
+  min-width: 0;
 }
 
 .qr-display {
@@ -135,10 +157,10 @@
 .qr-code-container {
   position: relative;
   display: inline-block;
-  margin-bottom: 25px;
-  padding: 20px;
+  margin-bottom: clamp(20px, 4vw, 25px);
+  padding: clamp(15px, 3vw, 20px);
   background: white;
-  border-radius: 20px;
+  border-radius: clamp(15px, 3vw, 20px);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   border: 3px solid #667eea;
 }
@@ -197,21 +219,24 @@
 /* QR Actions */
 .qr-actions {
   display: flex;
-  gap: 15px;
+  gap: clamp(10px, 2.5vw, 15px);
   justify-content: center;
+  flex-wrap: wrap;
 }
 
 .action-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
+  gap: clamp(6px, 1.5vw, 8px);
+  padding: clamp(10px, 2vw, 12px) clamp(15px, 3vw, 20px);
   border: none;
-  border-radius: 10px;
+  border-radius: clamp(8px, 2vw, 10px);
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s ease;
   text-decoration: none;
+  font-size: clamp(0.9rem, 2vw, 1rem);
+  min-width: 0;
 }
 
 .action-btn.download {
@@ -411,17 +436,19 @@
 .qr-info {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: clamp(15px, 3vw, 20px);
+  min-width: 0;
 }
 
 .info-card {
   background: white;
-  padding: 25px;
-  border-radius: 15px;
+  padding: clamp(20px, 4vw, 25px);
+  border-radius: clamp(12px, 2.5vw, 15px);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   display: flex;
-  gap: 20px;
+  gap: clamp(15px, 3vw, 20px);
   align-items: flex-start;
+  min-width: 0;
 }
 
 .info-icon {
@@ -444,9 +471,10 @@
 }
 
 .info-content h4 {
-  margin: 0 0 15px 0;
+  margin: 0 0 clamp(12px, 2.5vw, 15px) 0;
   color: #333;
-  font-size: 1.2rem;
+  font-size: clamp(1.1rem, 2.5vw, 1.2rem);
+  word-break: break-word;
 }
 
 .info-content ul {
@@ -472,8 +500,8 @@
 
 .btn-primary,
 .btn-secondary {
-  padding: 12px 20px;
-  border-radius: 8px;
+  padding: clamp(10px, 2vw, 12px) clamp(15px, 3vw, 20px);
+  border-radius: clamp(6px, 1.5vw, 8px);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -481,7 +509,9 @@
   text-decoration: none;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: clamp(6px, 1.5vw, 8px);
+  font-size: clamp(0.9rem, 2vw, 1rem);
+  min-width: 0;
 }
 
 .btn-primary {
@@ -509,7 +539,6 @@
 @media (max-width: 1200px) {
   .qr-content {
     grid-template-columns: 1fr;
-    gap: 30px;
   }
 
   .qr-info {
@@ -520,30 +549,11 @@
 @media (max-width: 768px) {
   .qr-header {
     flex-direction: column;
-    gap: 20px;
     text-align: center;
-    padding: 30px 20px;
-  }
-
-  .header-content h2 {
-    font-size: 2rem;
-  }
-
-  .qr-content {
-    padding: 0 20px 30px 20px;
-  }
-
-  .qr-card {
-    padding: 25px 20px;
-  }
-
-  .qr-code-container {
-    padding: 15px;
   }
 
   .qr-actions {
     flex-direction: column;
-    gap: 10px;
   }
 
   .action-btn {
@@ -553,7 +563,7 @@
 
   .id-header {
     flex-direction: column;
-    gap: 15px;
+    gap: var(--space-md);
     align-items: stretch;
   }
 
@@ -573,6 +583,7 @@
 
   .url-container {
     flex-direction: column;
+    gap: var(--space-sm);
   }
 
   .copy-btn {
@@ -581,46 +592,32 @@
 
   .info-card {
     flex-direction: column;
-    gap: 15px;
+    align-items: center;
+    text-align: center;
   }
 
   .info-icon {
-    align-self: center;
     margin-top: 0;
   }
 }
 
 @media (max-width: 480px) {
-  .qr-header {
-    padding: 20px 15px;
-  }
-
-  .header-content h2 {
-    font-size: 1.7rem;
-  }
-
-  .qr-content {
-    padding: 0 15px 25px 15px;
-  }
-
-  .qr-card {
-    padding: 20px 15px;
-  }
-
   .qr-controls {
     flex-direction: column;
-    gap: 10px;
+    gap: var(--space-sm);
+    align-items: center;
   }
 
   .size-slider {
-    width: 200px;
+    width: min(200px, 80vw);
   }
 
   .verification-url {
-    padding: 15px;
+    padding: clamp(12px, 3vw, 15px);
   }
-
-  .info-card {
-    padding: 20px 15px;
+  
+  .status-badge {
+    padding: clamp(8px, 2vw, 12px) clamp(15px, 3vw, 20px);
+    font-size: clamp(0.8rem, 2vw, 0.9rem);
   }
 }
