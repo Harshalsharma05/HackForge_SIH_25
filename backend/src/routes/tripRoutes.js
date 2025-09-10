@@ -9,6 +9,7 @@ import {
   completeTrip,
   verifyTripDigitalId,
   getBlockchainDigitalId,
+  getTouristTripDetails,
 } from "../controllers/tripController.js";
 import { verifyJWT, optionalAuth } from "../middlewares/auth.middleware.js";
 
@@ -23,6 +24,9 @@ router.route("/:tripId/update").patch(verifyJWT, updateTrip);
 router.route("/:tripId/activate").post(verifyJWT, activateTrip);
 router.route("/:tripId/complete").post(verifyJWT, completeTrip);
 router.route("/:tripId/blockchain").get(verifyJWT, getBlockchainDigitalId);
+
+// Authority routes (for dashboard - these need admin auth middleware)
+router.route("/tourist/:touristId/details").get(getTouristTripDetails);
 
 // Public route (for authorities to verify digital ID)
 router.route("/verify/:digital_id").get(verifyTripDigitalId);

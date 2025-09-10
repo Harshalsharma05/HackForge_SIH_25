@@ -22,16 +22,16 @@ const TripSchema = new mongoose.Schema(
     },
     itinerary: { type: String },
     accommodation_details: { type: String },
-    local_contact: {
-      name: { type: String },
-      phone: { type: String },
-      address: { type: String },
-    },
 
     // Digital ID for this trip (Enhanced for Blockchain)
     digital_id: { type: String, required: true, unique: true },
     digital_id_hash: { type: String },
-    qr_code: { type: String }, // Base64 QR code or URL
+    qr_code: { type: String }, // Base64 QR code or URL (legacy field)
+    qr_codes: {
+      digital_id: { type: String }, // Main digital ID QR code
+      emergency: { type: String }, // Emergency contact QR code
+      verification: { type: String }, // Simple verification QR code
+    },
 
     // Blockchain Integration Fields
     blockchain_digital_id: {
