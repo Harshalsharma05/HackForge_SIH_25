@@ -188,23 +188,25 @@ const QRCodeGenerator = () => {
   return (
     <div className="qr-generator">
       <div className="qr-header">
-        <div className="header-content">
-          <h2>Trip Digital ID</h2>
-          <p>Your secure, blockchain-verified trip identity</p>
-        </div>
-        <div className="verification-status">
-          <div
-            className={`status-badge ${
-              currentTrip.blockchain_status || "pending"
-            }`}
-            style={{
-              backgroundColor: getStatusColor(
+        <div className="qr-header-content">
+          <div className="header-content">
+            <h2>Trip Digital ID</h2>
+            <p>Your secure, blockchain-verified trip identity</p>
+          </div>
+          <div className="verification-status">
+            <div
+              className={`status-badge ${
                 currentTrip.blockchain_status || "pending"
-              ),
-            }}
-          >
-            {getStatusIcon(currentTrip.blockchain_status || "pending")}
-            <span>{safeRender(currentTrip.blockchain_status, "Pending")}</span>
+              }`}
+              style={{
+                backgroundColor: getStatusColor(
+                  currentTrip.blockchain_status || "pending"
+                ),
+              }}
+            >
+              {getStatusIcon(currentTrip.blockchain_status || "pending")}
+              <span>{safeRender(currentTrip.blockchain_status, "Pending")}</span>
+            </div>
           </div>
         </div>
       </div>

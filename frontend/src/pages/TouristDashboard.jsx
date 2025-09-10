@@ -419,30 +419,32 @@ const TouristDashboard = () => {
 
       {/* Header */}
       <header className="dashboard-header">
-        <div className="header-left">
-          <h1>SafeTour Dashboard</h1>
-          <span className="user-status">Tourist • {user?.name || "User"}</span>
-        </div>
+        <div className="dashboard-header-content">
+          <div className="header-left">
+            <h1>SafeTour Dashboard</h1>
+            <span className="user-status">Tourist • {user?.name || "User"}</span>
+          </div>
 
-        <div className="header-right">
-          <button className="notification-btn">
-            <FaBell />
-            <span className="notification-badge">3</span>
-          </button>
-
-          <div className="user-menu">
-            <button className="user-avatar-btn">
-              <FaUser />
+          <div className="header-right">
+            <button className="notification-btn">
+              <FaBell />
+              <span className="notification-badge">3</span>
             </button>
-            <div className="user-dropdown">
-              <a href="#profile">Profile</a>
-              <a href="#settings" onClick={() => setActiveTab("settings")}>
-                Settings
-              </a>
-              <a href="#help">Help</a>
-              <button onClick={logout}>
-                <FaSignOutAlt /> Logout
+
+            <div className="user-menu">
+              <button className="user-avatar-btn">
+                <FaUser />
               </button>
+              <div className="user-dropdown">
+                <a href="#profile">Profile</a>
+                <a href="#settings" onClick={() => setActiveTab("settings")}>
+                  Settings
+                </a>
+                <a href="#help">Help</a>
+                <button onClick={logout}>
+                  <FaSignOutAlt /> Logout
+                </button>
+              </div>
             </div>
           </div>
         </div>
