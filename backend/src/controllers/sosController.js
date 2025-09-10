@@ -1,5 +1,6 @@
 import twilio from "twilio";
 import Alert from "../models/alerts.js";
+import DigitalId from "../models/digitalId.js";
 import Tourist from "../models/tourist.js";
 
 const client = twilio(
@@ -10,146 +11,169 @@ const client = twilio(
 // Helper: format phone numbers to E.164
 const formatPhoneNumber = (number) => {
   if (!number) return null;
-  let cleaned = number.replace(/\D/g, ""); // remove non-digit chars
-  if (cleaned.startsWith("0")) cleaned = cleaned.slice(1); // remove leading 0
-  if (!cleaned.startsWith("91")) cleaned = "91" + cleaned; // add India country code
+  let cleaned = number.replace(/\D/g, "");
+  if (cleaned.startsWith("0")) cleaned = cleaned.slice(1);
+  if (!cleaned.startsWith("91")) cleaned = "91" + cleaned;
   return "+" + cleaned;
 };
 
+/**
+ * Trigger SOS Alert:
+ *  - Saves alert in DB including smart_contract_id
+ *  - Calls tourist and sends SMS to admin
+ */
 export const sosAlert = async (req, res) => {
   try {
-    const { touristId, latitude, longitude, address } = req.body;
+    const { smart_contract_id, latitude, longitude, address } = req.body;
+    if (!smart_contract_id)
+      return res.status(400).json({ success: false, message: "smart_contract_id is required" });
 
-    if (!touristId) {
-      return res
-        .status(400)
-        .json({ success: false, message: "touristId is required" });
+    // Fetch DigitalId
+    const digitalId = await DigitalId.findOne({ smart_contract_id });
+    if (!digitalId)
+      return res.status(404).json({ success: false, message: "DigitalId not found" });
+
+    // Fetch Tourist
+    const tourist = await Tourist.findById(digitalId.tourist_id);
+    if (!tourist)
+      return res.status(404).json({ success: false, message: "Tourist not found" });
+
+    // Determine location
+    const finalLatitude = latitude ?? tourist.current_location?.latitude ?? 0;
+    const finalLongitude = longitude ?? tourist.current_location?.longitude ?? 0;
+    const finalAddress = address ?? tourist.current_location?.address ?? "Unknown Location";
+
+    // Save alert
+    let alert;
+    try {
+      alert = await Alert.create({
+        tourist_id: tourist._id,
+        smart_contract_id: digitalId.smart_contract_id, // ✅ store smart_contract_id
+        type: "panic",
+        title: "SOS Alert",
+        description: "Emergency SOS triggered by tourist",
+        severity: "critical",
+        latitude: finalLatitude,
+        longitude: finalLongitude,
+        address: finalAddress,
+        status: "active",
+        metadata: { device_id: digitalId.smart_contract_id, automatic_trigger: false },
+      });
+      console.log("✅ Alert saved:", alert._id);
+    } catch (err) {
+      console.error("❌ Error saving alert:", err.message);
+      return res.status(500).json({ success: false, message: "Failed to save alert", error: err.message });
     }
-
-    // Fetch tourist details
-    const tourist = await Tourist.findById(touristId);
-    if (!tourist) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Tourist not found" });
-    }
-
-    // Safe fallback if current_location is missing
-    const loc = tourist.current_location || {};
-    const finalLatitude = latitude || loc.latitude || 0;
-    const finalLongitude = longitude || loc.longitude || 0;
-    const finalAddress = address || loc.address || "Unknown Location";
-
-    // Create SOS alert in DB
-    const alert = await Alert.create({
-      tourist_id: tourist._id,
-      type: "panic",
-      title: "SOS Alert",
-      description: "Emergency SOS triggered by tourist",
-      severity: "critical",
-      latitude: finalLatitude,
-      longitude: finalLongitude,
-      address: finalAddress,
-      status: "active",
-      metadata: {
-        device_id: tourist.digital_id,
-        automatic_trigger: false,
-      },
-    });
 
     // Format phone numbers
     const touristPhone = formatPhoneNumber(tourist.phone);
     const adminPhone = formatPhoneNumber(process.env.MY_PHONE_NUMBER);
 
-    if (!touristPhone || !adminPhone) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid tourist or admin phone number",
-      });
-    }
-
-    // Twilio call: connect tourist first, then admin
-    const twiml = `
-      <Response>
-        <Say voice="alice">
-          SOS Alert! We are connecting you to emergency services. Please stay on the line.
-        </Say>
-        <Dial>
-          <Number>${adminPhone}</Number>
-        </Dial>
-      </Response>
-    `;
-
-    await client.calls.create({
-      from: process.env.TWILIO_PHONE_NUMBER,
-      to: touristPhone,
-      twiml: twiml,
-    });
-
-    // Send SMS to admin with tourist location
-    await client.messages.create({
-      from: process.env.TWILIO_PHONE_NUMBER,
-      to: adminPhone,
-      body: `🚨 SOS Alert 🚨
+    // Send notifications safely
+    try {
+      if (touristPhone && adminPhone) {
+        const twiml = `
+          <Response>
+            <Say voice="alice">
+              SOS Alert! We are connecting you to emergency services. Please stay on the line.
+            </Say>
+            <Dial>
+              <Number>${adminPhone}</Number>
+            </Dial>
+          </Response>
+        `;
+        await client.calls.create({ from: process.env.TWILIO_PHONE_NUMBER, to: touristPhone, twiml });
+        await client.messages.create({
+          from: process.env.TWILIO_PHONE_NUMBER,
+          to: adminPhone,
+          body: `🚨 SOS Alert 🚨
 Tourist: ${tourist.name}
 Phone: ${tourist.phone}
 Location: https://www.google.com/maps?q=${finalLatitude},${finalLongitude}`,
-    });
+        });
+        console.log("✅ Notifications sent via Twilio");
+      }
+    } catch (err) {
+      console.error("❌ Twilio notification error:", err.message);
+    }
 
-    res.status(200).json({
-      success: true,
-      message: "SOS Alert triggered: Tourist called, admin connected, SMS sent",
-      alert,
-    });
+    res.status(200).json({ success: true, message: "SOS Alert triggered successfully", alert });
 
   } catch (error) {
-    console.error("SOS Alert Error:", error);
+    console.error("❌ SOS Alert Error:", error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-
-//  Function 2: Panic Notify Admin
+/**
+ * Panic Notify Admin:
+ *  - Saves alert in DB including smart_contract_id
+ *  - Sends SMS notification to admin only
+ */
 export const panicNotifyAdmin = async (req, res) => {
   try {
-    const { touristId, latitude, longitude, address } = req.body;
+    const { smart_contract_id, latitude, longitude, address } = req.body;
+    if (!smart_contract_id)
+      return res.status(400).json({ success: false, message: "smart_contract_id is required" });
 
-    if (!touristId) {
-      return res
-        .status(400)
-        .json({ success: false, message: "touristId is required" });
+    // Fetch DigitalId
+    const digitalId = await DigitalId.findOne({ smart_contract_id });
+    if (!digitalId)
+      return res.status(404).json({ success: false, message: "DigitalId not found" });
+
+    // Fetch Tourist
+    const tourist = await Tourist.findById(digitalId.tourist_id);
+    if (!tourist)
+      return res.status(404).json({ success: false, message: "Tourist not found" });
+
+    const finalLatitude = latitude ?? tourist.current_location?.latitude ?? 0;
+    const finalLongitude = longitude ?? tourist.current_location?.longitude ?? 0;
+    const finalAddress = address ?? tourist.current_location?.address ?? "Unknown Location";
+
+    // Save alert
+    let alert;
+    try {
+      alert = await Alert.create({
+        tourist_id: tourist._id,
+        smart_contract_id: digitalId.smart_contract_id, // ✅ store smart_contract_id
+        type: "panic",
+        title: "Panic Alert",
+        description: "Panic API triggered by tourist",
+        severity: "critical",
+        latitude: finalLatitude,
+        longitude: finalLongitude,
+        address: finalAddress,
+        status: "active",
+        metadata: { device_id: digitalId.smart_contract_id, automatic_trigger: false },
+      });
+      console.log("✅ Alert saved:", alert._id);
+    } catch (err) {
+      console.error("❌ Failed to save alert:", err);
+      return res.status(500).json({ success: false, message: "Failed to save alert", error: err.message });
     }
 
-    // Fetch tourist details
-    const tourist = await Tourist.findById(touristId);
-    if (!tourist) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Tourist not found" });
-    }
-
-    // Use live location if provided, else fallback to DB
-    const finalLatitude = latitude || tourist.current_location.latitude;
-    const finalLongitude = longitude || tourist.current_location.longitude;
-    const finalAddress = address || tourist.current_location.address;
-
-    // Send SMS to admin
-    await client.messages.create({
-      from: process.env.TWILIO_PHONE_NUMBER,
-      to: process.env.MY_PHONE_NUMBER,
-      body: `🚨 PANIC ALERT 🚨
+    // Send notification to admin
+    const adminPhone = formatPhoneNumber(process.env.MY_PHONE_NUMBER);
+    if (adminPhone) {
+      try {
+        await client.messages.create({
+          from: process.env.TWILIO_PHONE_NUMBER,
+          to: adminPhone,
+          body: `🚨 PANIC ALERT 🚨
 Tourist: ${tourist.name}
 Phone: ${tourist.phone}
 Location: https://www.google.com/maps?q=${finalLatitude},${finalLongitude}`,
-    });
+        });
+        console.log("✅ Panic notification sent to admin");
+      } catch (err) {
+        console.error("❌ Twilio panic notification error:", err.message);
+      }
+    }
 
-    res.status(200).json({
-      success: true,
-      message: "Panic notification sent to admin",
-    });
+    res.status(200).json({ success: true, message: "Panic alert saved and admin notified", alert });
 
   } catch (error) {
-    console.error("Panic Notify Error:", error.message);
+    console.error("❌ Panic Notify Error:", error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 };

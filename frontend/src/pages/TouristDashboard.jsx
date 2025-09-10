@@ -28,6 +28,8 @@ import QRCodeGenerator from "../components/QRCodeGenerator";
 // import TripHistory from '../components/TripHistory';
 import api, { tripAPI, alertsAPI } from "../services/api";
 import "./TouristDashboard.css";
+import axios from "axios";
+import { toast, ToastContainer } from "react-toastify";
 
 const TouristDashboard = () => {
   const { user, logout } = useAuth();
@@ -92,20 +94,53 @@ const TouristDashboard = () => {
     }
   };
 
-  const handleEmergencyAlert = async (alertType, message) => {
-    try {
-      const alertData = {
-        alert_type: alertType,
-        message: message,
-        location: locationStatus.location || null,
-        severity: "high",
-      };
+  const handlePanicClick = async () => {
+    if (!user) {
+      toast.error("❌ User not logged in");
+      return;
+    }
 
-      await alertsAPI.sosAlert(alertData);
-      alert("Emergency alert sent successfully!");
+    if (!currentTrip || !currentTrip.digital_id) {
+      toast.error("❌ Digital ID not available for current trip");
+      return;
+    }
+
+    let latitude = null;
+    let longitude = null;
+
+    if (navigator.geolocation) {
+      try {
+        const position = await new Promise((resolve, reject) =>
+          navigator.geolocation.getCurrentPosition(resolve, reject)
+        );
+        latitude = position.coords.latitude;
+        longitude = position.coords.longitude;
+      } catch (error) {
+        console.warn("Geolocation not available or denied:", error);
+        toast.warning("⚠️ Geolocation not available");
+      }
+    }
+
+    try {
+      const payload = { smart_contract_id: currentTrip.digital_id };
+      if (latitude && longitude) {
+        payload.latitude = latitude;
+        payload.longitude = longitude;
+      }
+
+      const response = await axios.post(
+        "http://localhost:3000/api/v1/alert/panic",
+        payload
+      );
+
+      console.log("SOS Alert Response:", response.data);
+      toast.success("🚨 SOS Alert triggered successfully!");
     } catch (error) {
-      console.error("Error sending emergency alert:", error);
-      alert("Failed to send emergency alert. Please try again.");
+      console.error(
+        "Error triggering SOS:",
+        error.response?.data || error.message
+      );
+      toast.error("❌ Failed to trigger SOS");
     }
   };
 
@@ -468,13 +503,26 @@ const TouristDashboard = () => {
       <main className="dashboard-content">{renderContent()}</main>
 
       {/* Emergency Quick Access */}
-      <div className="emergency-fab">
-        <button
-          className="emergency-btn"
-          onClick={() => setShowEmergencyPanel(true)}
-        >
-          <FaExclamationTriangle />
-        </button>
+      <div className="dashboard">
+        {/* Your other components */}
+
+        <div className="emergency-fab">
+          <button className="emergency-btn" onClick={handlePanicClick}>
+            <FaExclamationTriangle />
+          </button>
+        </div>
+
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+        />
       </div>
 
       {/* Emergency Panel Modal */}
