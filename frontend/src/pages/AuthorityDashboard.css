@@ -12,7 +12,7 @@
   background: white;
   padding: 15px 20px;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .dashboard-header h1 {
@@ -44,7 +44,7 @@
   background: white;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .sidebar {
@@ -57,7 +57,7 @@
   background: white;
   padding: 20px;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .alerts-section h3 {
@@ -123,7 +123,7 @@
   background: white;
   padding: 20px;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .tourist-details h3 {
@@ -149,6 +149,41 @@
 .qr-code {
   border: 1px solid #ddd;
   border-radius: 4px;
+}
+
+.emergency-contacts {
+  margin: 15px 0;
+}
+
+.emergency-contacts h4 {
+  margin: 0 0 10px 0;
+  color: #333;
+}
+
+.contact-item {
+  background: #f9f9f9;
+  padding: 10px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  border-left: 3px solid #2196f3;
+}
+
+.contact-item p {
+  margin: 4px 0;
+  font-size: 14px;
+}
+
+.location-btn {
+  background: #4caf50;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.location-btn:hover {
+  background: #45a049;
 }
 
 .actions {
@@ -189,12 +224,12 @@
   .dashboard-content {
     grid-template-columns: 1fr;
   }
-  
+
   .dashboard-header {
     flex-direction: column;
     gap: 10px;
   }
-  
+
   .stats {
     flex-direction: column;
     gap: 10px;

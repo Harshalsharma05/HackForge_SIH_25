@@ -1,4 +1,6 @@
 import mongoose from "mongoose";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 const AdminSchema = new mongoose.Schema(
   {
@@ -26,6 +28,7 @@ const AdminSchema = new mongoose.Schema(
     // Status
     is_active: { type: Boolean, default: true },
     last_login: { type: Date },
+    refresh_token: { type: String }, // For JWT refresh token
     created_at: { type: Date, default: Date.now },
   },
   {
@@ -34,8 +37,8 @@ const AdminSchema = new mongoose.Schema(
 );
 
 // Indexes
-AdminSchema.index({ email: 1 });
-AdminSchema.index({ username: 1 });
+// email already has unique: true, so removing duplicate index
+// username already has unique: true, so removing duplicate index
 AdminSchema.index({ role: 1 });
 
 AdminSchema.methods.isPasswordCorrect = async function (password) {
@@ -67,6 +70,5 @@ AdminSchema.methods.generateRefreshToken = function () {
     }
   );
 };
-
 
 export default mongoose.model("Admin", AdminSchema);

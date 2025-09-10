@@ -1,6 +1,6 @@
 /* General Resets and Font Setup */
 :root {
-  font-family: 'Roboto', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: "Roboto", system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
@@ -10,15 +10,15 @@
   -moz-osx-font-smoothing: grayscale;
 
   /* SafeTour Color Palette */
-  --primary-purple: #673AB7;
-  --light-purple-bg: #E1D6F7;
-  --danger-red: #F44336;
-  --success-green: #4CAF50;
-  --background-light: #F8F7FC;
-  --card-bg: #FFFFFF;
+  --primary-purple: #673ab7;
+  --light-purple-bg: #e1d6f7;
+  --danger-red: #f44336;
+  --success-green: #4caf50;
+  --background-light: #f8f7fc;
+  --card-bg: #ffffff;
   --text-primary: #213547;
   --text-secondary: #555;
-  --border-light: #E0E0E0;
+  --border-light: #e0e0e0;
 }
 
 body {
@@ -35,4 +35,14 @@ body {
 
 * {
   box-sizing: border-box;
+}
+
+/* Loading Spinner Animation */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }

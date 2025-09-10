@@ -1,0 +1,626 @@
+/* QR Code Generator Styles */
+.qr-generator {
+  padding: 0;
+  background: #f8f9fa;
+  min-height: 100vh;
+}
+
+.qr-generator.loading,
+.qr-generator.error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 50vh;
+  gap: 20px;
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.error-icon {
+  font-size: 4rem;
+  color: #dc3545;
+  margin-bottom: 20px;
+}
+
+.qr-generator.error h3 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 1.5rem;
+}
+
+.qr-generator.error p {
+  margin: 0 0 25px 0;
+  color: #6c757d;
+  font-size: 1rem;
+}
+
+/* Header */
+.qr-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 40px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.header-content h2 {
+  margin: 0 0 8px 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.header-content p {
+  margin: 0;
+  font-size: 1.1rem;
+  opacity: 0.9;
+}
+
+.verification-status {
+  display: flex;
+  align-items: center;
+}
+
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 25px;
+  color: white;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.status-badge.verified {
+  background: #28a745;
+}
+
+.status-badge.pending {
+  background: #ffc107;
+  color: #333;
+}
+
+.status-badge.rejected {
+  background: #dc3545;
+}
+
+/* Main Content */
+.qr-content {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 30px;
+  padding: 0 30px 30px 30px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* QR Card */
+.qr-card {
+  background: white;
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.qr-display {
+  text-align: center;
+}
+
+.qr-code-container {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 25px;
+  padding: 20px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border: 3px solid #667eea;
+}
+
+.qr-image {
+  display: block;
+  border-radius: 8px;
+}
+
+.qr-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.qr-center-logo {
+  width: 40px;
+  height: 40px;
+  background: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #667eea;
+  font-size: 1.2rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* QR Controls */
+.qr-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.qr-controls label {
+  font-weight: 600;
+  color: #333;
+}
+
+.size-slider {
+  width: 150px;
+  margin: 0 10px;
+}
+
+.qr-controls span {
+  font-weight: 600;
+  color: #667eea;
+  min-width: 60px;
+}
+
+/* QR Actions */
+.qr-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.action-btn.download {
+  background: #28a745;
+  color: white;
+}
+
+.action-btn.download:hover {
+  background: #218838;
+  transform: translateY(-2px);
+}
+
+.action-btn.share {
+  background: #007bff;
+  color: white;
+}
+
+.action-btn.share:hover {
+  background: #0056b3;
+  transform: translateY(-2px);
+}
+
+.action-btn.refresh {
+  background: #6c757d;
+  color: white;
+}
+
+.action-btn.refresh:hover {
+  background: #5a6268;
+  transform: translateY(-2px);
+}
+
+/* ID Details */
+.id-details {
+  flex: 1;
+}
+
+.id-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.id-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 1.4rem;
+}
+
+.toggle-details {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.toggle-details:hover {
+  background: #5a6fd8;
+  transform: translateY(-1px);
+}
+
+/* Info Items */
+.basic-info,
+.detailed-info {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f3f4;
+}
+
+.info-item label {
+  font-weight: 600;
+  color: #495057;
+  flex: 1;
+}
+
+.info-item span {
+  color: #333;
+  flex: 2;
+  text-align: right;
+}
+
+.status-text.verified {
+  color: #28a745;
+  font-weight: 600;
+}
+
+.status-text.pending {
+  color: #ffc107;
+  font-weight: 600;
+}
+
+.status-text.rejected {
+  color: #dc3545;
+  font-weight: 600;
+}
+
+/* Info Sections */
+.info-section {
+  margin: 25px 0;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+}
+
+.info-section h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 1.1rem;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.hash-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Courier New", monospace;
+  font-size: 0.9rem;
+}
+
+.blockchain-icon {
+  color: #667eea;
+}
+
+/* Verification URL */
+.verification-url {
+  margin-top: 25px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+}
+
+.verification-url label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 600;
+  color: #333;
+}
+
+.url-container {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.url-input {
+  flex: 1;
+  padding: 12px 15px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: white;
+  color: #6c757d;
+}
+
+.copy-btn {
+  padding: 12px 15px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.copy-btn:hover {
+  background: #5a6fd8;
+}
+
+.copy-success {
+  display: block;
+  margin-top: 8px;
+  color: #28a745;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Info Cards */
+.qr-info {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.info-card {
+  background: white;
+  padding: 25px;
+  border-radius: 15px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.info-icon {
+  font-size: 2rem;
+  color: #667eea;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.info-icon.security {
+  color: #28a745;
+}
+
+.info-icon.blockchain {
+  color: #ffc107;
+}
+
+.info-content {
+  flex: 1;
+}
+
+.info-content h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 1.2rem;
+}
+
+.info-content ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #6c757d;
+  line-height: 1.6;
+}
+
+.info-content li {
+  margin-bottom: 8px;
+}
+
+.info-content p {
+  margin: 0;
+  color: #6c757d;
+  line-height: 1.6;
+}
+
+.blockchain-link {
+  margin-top: 15px;
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+}
+
+.btn-secondary {
+  background: white;
+  color: #667eea;
+  border: 2px solid #667eea;
+}
+
+.btn-secondary:hover {
+  background: #667eea;
+  color: white;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .qr-content {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+
+  .qr-info {
+    grid-row: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .qr-header {
+    flex-direction: column;
+    gap: 20px;
+    text-align: center;
+    padding: 30px 20px;
+  }
+
+  .header-content h2 {
+    font-size: 2rem;
+  }
+
+  .qr-content {
+    padding: 0 20px 30px 20px;
+  }
+
+  .qr-card {
+    padding: 25px 20px;
+  }
+
+  .qr-code-container {
+    padding: 15px;
+  }
+
+  .qr-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .action-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .id-header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch;
+  }
+
+  .toggle-details {
+    justify-content: center;
+  }
+
+  .info-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+
+  .info-item span {
+    text-align: left;
+  }
+
+  .url-container {
+    flex-direction: column;
+  }
+
+  .copy-btn {
+    align-self: flex-start;
+  }
+
+  .info-card {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .info-icon {
+    align-self: center;
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .qr-header {
+    padding: 20px 15px;
+  }
+
+  .header-content h2 {
+    font-size: 1.7rem;
+  }
+
+  .qr-content {
+    padding: 0 15px 25px 15px;
+  }
+
+  .qr-card {
+    padding: 20px 15px;
+  }
+
+  .qr-controls {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .size-slider {
+    width: 200px;
+  }
+
+  .verification-url {
+    padding: 15px;
+  }
+
+  .info-card {
+    padding: 20px 15px;
+  }
+}

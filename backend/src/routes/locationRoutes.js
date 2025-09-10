@@ -6,6 +6,7 @@ import {
   getCurrentLocation,
   getLocationHistory,
   checkNearbyGeoFences,
+  getHeatmapData,
 } from "../controllers/locationController.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
@@ -27,5 +28,8 @@ router.route("/history/:trip_id").get(getLocationHistory);
 
 // Geo-fence operations
 router.route("/check-geofences").get(checkNearbyGeoFences);
+
+// Heatmap and cluster data
+router.route("/heatmap").get(getHeatmapData);
 
 export default router;

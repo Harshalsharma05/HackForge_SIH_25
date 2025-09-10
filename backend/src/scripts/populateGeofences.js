@@ -1,3 +1,5 @@
+import dotenv from "dotenv";
+dotenv.config({ path: '../.env' }); 
 import mongoose from "mongoose";
 import GeoFence from "../models/geofence.js";
 import connectDB from "../db/connectDB.js";

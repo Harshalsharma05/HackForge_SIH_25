@@ -1,34 +1,61 @@
-import { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import './App.css';
-import Sidebar from './components/Sidebar';
-import Dashboard from './pages/Dashboard';
-import AuthorityApp from './AuthorityApp';
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
+import AuthorityDashboard from "./pages/AuthorityDashboard";
+import TouristDashboard from "./pages/TouristDashboard";
+import TestBackendConnection from "./components/TestBackendConnection";
+import "./App.css";
+import "./index.css";
+
+// Component to handle routing based on user type
+const AppRouter = () => {
+  const { userType, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+          fontSize: "18px",
+          color: "#673AB7",
+        }}
+      >
+        Loading SafeTour...
+      </div>
+    );
+  }
+
+  // Render appropriate dashboard based on user type
+  if (userType === "authority") {
+    return (
+      <>
+        {/* <TestBackendConnection /> */}
+        <AuthorityDashboard />
+      </>
+    );
+  } else if (userType === "tourist") {
+    return (
+      <>
+        {/* <TestBackendConnection /> */}
+        <TouristDashboard />
+      </>
+    );
+  }
+
+  // This should not happen as ProtectedRoute handles unauthenticated users
+  return null;
+};
 
 function App() {
-  const [isSidebarOpen, setSidebarOpen] = useState(false);
-
-  const toggleSidebar = () => {
-    setSidebarOpen(!isSidebarOpen);
-  };
-
   return (
-    <Router>
-      <Routes>
-        <Route path="/authority" element={<AuthorityApp />} />
-        <Route path="/" element={
-          <div className="app-container">
-            <Sidebar isOpen={isSidebarOpen} />
-            <main className="main-content">
-              <Dashboard toggleSidebar={toggleSidebar} />
-            </main>
-          </div>
-        } />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Router>
+    <AuthProvider>
+      <ProtectedRoute>
+        <AppRouter />
+      </ProtectedRoute>
+    </AuthProvider>
   );
 }
 
-export default App; 
-
+export default App;

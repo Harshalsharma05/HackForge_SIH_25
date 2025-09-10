@@ -6,8 +6,10 @@ const app = express();
 
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || "*",
+    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   })
 );
 
@@ -24,6 +26,8 @@ import geofenceRoutes from "./routes/geofenceRoutes.js";
 import sosRoutes from "./routes/sosRoutes.js";
 import kycRoutes from "./routes/kycRoutes.js";
 import blockchainRoutes from "./routes/blockchainRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+import dashboardRoutes from "./routes/dashboardRoutes.js";
 
 // Route declarations
 app.use("/api/v1/auth", authRoutes);
@@ -33,6 +37,8 @@ app.use("/api/v1/geofence", geofenceRoutes);
 app.use("/api/v1/alert", sosRoutes);
 app.use("/api/v1/kyc", kycRoutes);
 app.use("/api/v1/blockchain", blockchainRoutes);
+app.use("/api/v1/admin", adminRoutes);
+app.use("/api/v1/dashboard", dashboardRoutes);
 
 app.get("/", (req, res) => {
   res.send("Tourist Safety System API is running....");
