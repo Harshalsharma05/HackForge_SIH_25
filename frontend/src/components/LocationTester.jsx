@@ -92,19 +92,26 @@ const LocationTester = ({ selectedTrip, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [updateResult, setUpdateResult] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
-  const [mapCenter, setMapCenter] = useState([28.6139, 77.209]); // Default to Delhi
+  const [mapCenter, setMapCenter] = useState([28.6139, 77.209]); // Default to Delhi as fallback
   const [mapZoom, setMapZoom] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [locationLoaded, setLocationLoaded] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(true);
 
   useEffect(() => {
+    // Get user's location first, then handle trip destination
+    getCurrentLocationFromBrowser();
+
     if (selectedTrip?.destination) {
       loadDestinationSuggestions(selectedTrip.destination);
-      setMapCenterForDestination(selectedTrip.destination);
+      // Only set destination center if user location hasn't been loaded yet
+      if (locationLoaded) {
+        setMapCenterForDestination(selectedTrip.destination);
+      }
     }
-    getCurrentLocationFromBrowser();
-  }, [selectedTrip]);
+  }, [selectedTrip, locationLoaded]);
 
   const loadDestinationSuggestions = (destination) => {
     const destKey = destination.toLowerCase();
@@ -120,6 +127,11 @@ const LocationTester = ({ selectedTrip, onClose }) => {
   };
 
   const setMapCenterForDestination = (destination) => {
+    // Only set destination center if user location is not available
+    if (currentLocation) {
+      return; // User location takes priority
+    }
+
     const destKey = destination.toLowerCase();
     const matchingKey = Object.keys(destinationCoordinates).find(
       (key) => destKey.includes(key) || key.includes(destKey)
@@ -133,18 +145,47 @@ const LocationTester = ({ selectedTrip, onClose }) => {
   };
 
   const getCurrentLocationFromBrowser = () => {
+    setLocationLoading(true);
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setCurrentLocation({
+          const userLocation = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
-          });
+          };
+          setCurrentLocation(userLocation);
+
+          // Center the map on user's location with higher zoom
+          setMapCenter([userLocation.lat, userLocation.lng]);
+          setMapZoom(13);
+          setLocationLoaded(true);
+          setLocationLoading(false);
         },
         (error) => {
           console.log("Could not get current location:", error);
+          setLocationLoaded(true);
+          setLocationLoading(false);
+
+          // If location fails and we have a trip destination, center on that
+          if (selectedTrip?.destination) {
+            setMapCenterForDestination(selectedTrip.destination);
+          }
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000, // 5 minutes
         }
       );
+    } else {
+      console.log("Geolocation is not supported by this browser");
+      setLocationLoaded(true);
+      setLocationLoading(false);
+
+      // If geolocation not supported and we have a trip destination, center on that
+      if (selectedTrip?.destination) {
+        setMapCenterForDestination(selectedTrip.destination);
+      }
     }
   };
 
@@ -163,6 +204,29 @@ const LocationTester = ({ selectedTrip, onClose }) => {
     setMapCenter([suggestion.lat, suggestion.lng]);
     setMapZoom(15);
     setUpdateResult(null);
+  };
+
+  const centerOnUserLocation = () => {
+    if (currentLocation) {
+      setMapCenter([currentLocation.lat, currentLocation.lng]);
+      setMapZoom(15);
+    } else {
+      // Try to get location again if not available
+      getCurrentLocationFromBrowser();
+    }
+  };
+
+  // Show loading indicator in header if location is being fetched
+  const getLocationStatus = () => {
+    if (locationLoading) {
+      return "📍 Getting your location...";
+    }
+    if (currentLocation) {
+      return `📍 Located at ${currentLocation.lat.toFixed(
+        4
+      )}, ${currentLocation.lng.toFixed(4)}`;
+    }
+    return "📍 Location not available";
   };
 
   const handleUpdateLocation = async () => {
@@ -299,25 +363,33 @@ const LocationTester = ({ selectedTrip, onClose }) => {
     };
   }, [searchTimeout]);
 
-  return (
-    <div className="location-tester">
-      <div className="location-tester-header">
-        <h3>Location Tester</h3>
-        <p>
-          Click on the map or select a popular location to test location updates
-        </p>
-        {selectedTrip && (
-          <div className="trip-info">
-            <strong>Testing for:</strong> {selectedTrip.trip_name} -{" "}
-            {selectedTrip.destination}
-          </div>
-        )}
-        <button className="close-btn" onClick={onClose}>
-          ×
-        </button>
-      </div>
+  // Handle backdrop click to close
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
 
-      <div className="location-tester-content">
+  // Handle escape key to close
+  useEffect(() => {
+    const handleEscKey = (e) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleEscKey);
+    return () => {
+      document.removeEventListener("keydown", handleEscKey);
+    };
+  }, [onClose]);
+
+  return (
+    <div className="location-tester" onClick={handleBackdropClick}>
+      <div
+        className="location-tester-content"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Search Section */}
         <div className="search-section">
           <div className="search-container">
@@ -372,6 +444,24 @@ const LocationTester = ({ selectedTrip, onClose }) => {
         </div>
 
         <div className="map-section">
+          <div className="map-controls">
+            {currentLocation && (
+              <button
+                className="center-user-location-btn"
+                onClick={centerOnUserLocation}
+                title="Center map on your location"
+              >
+                📍 My Location
+              </button>
+            )}
+            <button
+              className="close-btn"
+              onClick={onClose}
+              title="Close Location Tester"
+            >
+              ✕
+            </button>
+          </div>
           <MapContainer
             center={mapCenter}
             zoom={mapZoom}
@@ -435,6 +525,21 @@ const LocationTester = ({ selectedTrip, onClose }) => {
               </Marker>
             )}
           </MapContainer>
+        </div>
+
+        <div className="location-tester-header">
+          <h3>Location Tester</h3>
+          <p>
+            Click on the map or select a popular location to test location
+            updates
+          </p>
+          <div className="location-status">{getLocationStatus()}</div>
+          {selectedTrip && (
+            <div className="trip-info">
+              <strong>Testing for:</strong> {selectedTrip.trip_name} -{" "}
+              {selectedTrip.destination}
+            </div>
+          )}
         </div>
 
         <div className="controls-section">
@@ -520,14 +625,17 @@ const LocationTester = ({ selectedTrip, onClose }) => {
           <div className="instructions">
             <h4>How to Use</h4>
             <ul>
-              <li>� Use the search bar to find locations by name or address</li>
-              <li>�🗺️ Click anywhere on the map to select a test location</li>
+              <li>
+                🔍 Use the search bar to find locations by name or address
+              </li>
+              <li>🗺️ Click anywhere on the map to select a test location</li>
               <li>📍 Use popular location buttons for quick selection</li>
               <li>🎯 The green dot shows your current browser location</li>
               <li>
                 🔄 Click "Update Location" to test the location update API
               </li>
               <li>⚠️ Any geofence violations will be displayed after update</li>
+              <li>❌ Click outside the modal or press ESC to close</li>
             </ul>
           </div>
         </div>
