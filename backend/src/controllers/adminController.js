@@ -3,6 +3,7 @@ import Admin from "../models/admin.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 // Generate Access and Refresh Tokens
 const generateAccessAndRefreshTokens = async (adminId) => {

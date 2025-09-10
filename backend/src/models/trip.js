@@ -22,16 +22,16 @@ const TripSchema = new mongoose.Schema(
     },
     itinerary: { type: String },
     accommodation_details: { type: String },
-    local_contact: {
-      name: { type: String },
-      phone: { type: String },
-      address: { type: String },
-    },
 
     // Digital ID for this trip (Enhanced for Blockchain)
     digital_id: { type: String, required: true, unique: true },
     digital_id_hash: { type: String },
-    qr_code: { type: String }, // Base64 QR code or URL
+    qr_code: { type: String }, // Base64 QR code or URL (legacy field)
+    qr_codes: {
+      digital_id: { type: String }, // Main digital ID QR code
+      emergency: { type: String }, // Emergency contact QR code
+      verification: { type: String }, // Simple verification QR code
+    },
 
     // Blockchain Integration Fields
     blockchain_digital_id: {
@@ -101,9 +101,9 @@ const TripSchema = new mongoose.Schema(
 
 // Indexes
 TripSchema.index({ tourist_id: 1, status: 1 });
-TripSchema.index({ digital_id: 1 });
-TripSchema.index({ blockchain_tx_hash: 1 });
-TripSchema.index({ wallet_address: 1 });
+// digital_id already has unique: true, so removing duplicate index
+// blockchain_tx_hash sparse index will be handled by sparse: true
+// wallet_address sparse index will be handled by sparse: true
 TripSchema.index({ start_date: 1, end_date: 1 });
 TripSchema.index({ status: 1, end_date: 1 });
 

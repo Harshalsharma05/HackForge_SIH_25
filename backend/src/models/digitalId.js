@@ -93,8 +93,8 @@ const DigitalIdSchema = new mongoose.Schema(
 
 // Indexes for efficient queries
 DigitalIdSchema.index({ tourist_id: 1, trip_id: 1 });
-DigitalIdSchema.index({ blockchain_tx_hash: 1 });
-DigitalIdSchema.index({ smart_contract_id: 1 });
+// blockchain_tx_hash already has unique: true, so removing duplicate index
+// smart_contract_id already has unique: true, so removing duplicate index
 DigitalIdSchema.index({ expires_at: 1 });
 DigitalIdSchema.index({ "on_chain_status.created": 1 });
 

@@ -1,35 +1,61 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
+import AuthorityDashboard from "./pages/AuthorityDashboard";
+import TouristDashboard from "./pages/TouristDashboard";
+import TestBackendConnection from "./components/TestBackendConnection";
+import "./App.css";
+import "./index.css";
+
+// Component to handle routing based on user type
+const AppRouter = () => {
+  const { userType, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+          fontSize: "18px",
+          color: "#673AB7",
+        }}
+      >
+        Loading SafeTour...
+      </div>
+    );
+  }
+
+  // Render appropriate dashboard based on user type
+  if (userType === "authority") {
+    return (
+      <>
+        {/* <TestBackendConnection /> */}
+        <AuthorityDashboard />
+      </>
+    );
+  } else if (userType === "tourist") {
+    return (
+      <>
+        {/* <TestBackendConnection /> */}
+        <TouristDashboard />
+      </>
+    );
+  }
+
+  // This should not happen as ProtectedRoute handles unauthenticated users
+  return null;
+};
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <AuthProvider>
+      <ProtectedRoute>
+        <AppRouter />
+      </ProtectedRoute>
+    </AuthProvider>
+  );
 }
 
-export default App
+export default App;

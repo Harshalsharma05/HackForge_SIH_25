@@ -56,7 +56,6 @@ const createTrip = asyncHandler(async (req, res) => {
     purpose = "tourism",
     itinerary,
     accommodation_details,
-    local_contact,
     emergency_contacts_for_trip,
     tracking_enabled = true,
   } = req.body;
@@ -114,12 +113,15 @@ const createTrip = asyncHandler(async (req, res) => {
       purpose,
       itinerary,
       accommodation_details,
-      local_contact,
       digital_id,
       tracking_enabled,
       emergency_contacts_for_trip:
         emergency_contacts_for_trip || tourist.emergency_contacts,
-      blockchain_status: "creating", // Mark as creating
+      blockchain_status: {
+        digital_id_created: false,
+        metadata_uploaded: false,
+        verification_enabled: false,
+      }, // Mark as creating
     });
 
     // Generate digital ID hash
@@ -207,7 +209,17 @@ const createTrip = asyncHandler(async (req, res) => {
     trip.blockchain_digital_id = digitalIdRecord._id;
     trip.blockchain_status = "confirmed";
     trip.qr_codes = qrCodes;
+
+    // Also update blockchain_status object structure
+    trip.blockchain_status = {
+      digital_id_created: true,
+      metadata_uploaded: true,
+      verification_enabled: true,
+    };
+
     await trip.save({ validateBeforeSave: false });
+
+    console.log("💾 QR codes saved to database:", Object.keys(qrCodes));
 
     // Update tourist's current trip if this is the active trip
     if (startDate <= now && endDate >= now) {
@@ -244,7 +256,12 @@ const createTrip = asyncHandler(async (req, res) => {
 
     // If blockchain creation fails, update trip status to failed
     if (trip) {
-      trip.blockchain_status = "failed";
+      trip.blockchain_status = {
+        digital_id_created: false,
+        metadata_uploaded: false,
+        verification_enabled: false,
+        error: error.message,
+      };
       await trip.save({ validateBeforeSave: false });
     }
 
@@ -307,12 +324,37 @@ const getTripById = asyncHandler(async (req, res) => {
 const getCurrentTrip = asyncHandler(async (req, res) => {
   const now = new Date();
 
-  const activeTrip = await Trip.findOne({
+  // Set time to start and end of day for accurate date-only comparison
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+
+  const todayEnd = new Date(now);
+  todayEnd.setHours(23, 59, 59, 999);
+
+  // First try to find an active trip
+  let activeTrip = await Trip.findOne({
     tourist_id: req.tourist._id,
-    start_date: { $lte: now },
-    end_date: { $gte: now },
+    start_date: { $lte: todayEnd },
+    end_date: { $gte: todayStart },
     status: "active",
   });
+
+  // If no active trip found, try to find a planned trip that should be active
+  if (!activeTrip) {
+    activeTrip = await Trip.findOne({
+      tourist_id: req.tourist._id,
+      start_date: { $lte: todayEnd },
+      end_date: { $gte: todayStart },
+      status: "planned",
+    });
+  }
+
+  // If still no trip found, get the most recent trip (for QR code display)
+  if (!activeTrip) {
+    activeTrip = await Trip.findOne({
+      tourist_id: req.tourist._id,
+    }).sort({ created_at: -1 });
+  }
 
   if (!activeTrip) {
     return res
@@ -638,6 +680,55 @@ const getBlockchainDigitalId = asyncHandler(async (req, res) => {
   }
 });
 
+// GET TOURIST TRIP DETAILS (For Authority Dashboard)
+const getTouristTripDetails = asyncHandler(async (req, res) => {
+  const { touristId } = req.params;
+
+  try {
+    // Get tourist details with current active trip
+    const tourist = await Tourist.findById(touristId).select(
+      "name email phone nationality emergency_contacts current_trip_id"
+    );
+
+    if (!tourist) {
+      throw new ApiError(404, "Tourist not found");
+    }
+
+    // Get current active trip
+    const currentTrip = await Trip.findOne({
+      tourist_id: touristId,
+      status: "active",
+    }).populate("blockchain_digital_id");
+
+    // Get latest location if trip exists
+    let latestLocation = null;
+    if (currentTrip) {
+      const Location = (await import("../models/location.js")).default;
+      latestLocation = await Location.findOne({
+        tourist_id: touristId,
+        trip_id: currentTrip._id,
+      }).sort({ timestamp: -1 });
+    }
+
+    return res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          tourist,
+          current_trip: currentTrip,
+          latest_location: latestLocation,
+        },
+        "Tourist details fetched successfully"
+      )
+    );
+  } catch (error) {
+    throw new ApiError(
+      500,
+      `Failed to fetch tourist details: ${error.message}`
+    );
+  }
+});
+
 export {
   createTrip,
   getTouristTrips,
@@ -648,4 +739,5 @@ export {
   completeTrip,
   verifyTripDigitalId,
   getBlockchainDigitalId,
+  getTouristTripDetails,
 };
