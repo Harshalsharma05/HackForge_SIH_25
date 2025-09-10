@@ -1,24 +1,26 @@
 .notification-container {
   position: fixed;
-  top: 20px;
-  right: 20px;
+  top: clamp(10px, 2vw, 20px);
+  right: clamp(10px, 2vw, 20px);
   z-index: 1000;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  max-width: 400px;
+  gap: clamp(8px, 1.5vw, 10px);
+  max-width: min(400px, 90vw);
+  width: 100%;
 }
 
 .notification {
   display: flex;
   align-items: flex-start;
   background: white;
-  border-radius: 8px;
-  padding: 15px;
+  border-radius: clamp(6px, 1.5vw, 8px);
+  padding: clamp(12px, 2.5vw, 15px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   border-left: 4px solid;
   transition: all 0.3s ease;
   transform: translateX(100%);
+  min-width: 0;
 }
 
 .notification-visible {
@@ -46,9 +48,10 @@
 }
 
 .notification-icon {
-  margin-right: 12px;
-  font-size: 1.2em;
+  margin-right: clamp(8px, 2vw, 12px);
+  font-size: clamp(1.1rem, 2.5vw, 1.2rem);
   margin-top: 2px;
+  flex-shrink: 0;
 }
 
 .notification-emergency .notification-icon {
@@ -71,17 +74,20 @@
   font-weight: bold;
   margin-bottom: 4px;
   color: #333;
+  font-size: clamp(0.9rem, 2vw, 1rem);
+  word-break: break-word;
 }
 
 .notification-message {
   color: #666;
-  font-size: 0.9em;
+  font-size: clamp(0.8rem, 1.8vw, 0.9rem);
   line-height: 1.4;
   margin-bottom: 4px;
+  word-break: break-word;
 }
 
 .notification-time {
-  font-size: 0.8em;
+  font-size: clamp(0.7rem, 1.5vw, 0.8rem);
   color: #999;
 }
 
@@ -90,9 +96,16 @@
   border: none;
   cursor: pointer;
   color: #999;
-  padding: 4px;
-  border-radius: 4px;
+  padding: clamp(3px, 1vw, 4px);
+  border-radius: clamp(3px, 1vw, 4px);
   transition: background-color 0.2s;
+  flex-shrink: 0;
+  font-size: clamp(0.9rem, 2vw, 1rem);
+  min-width: clamp(20px, 4vw, 24px);
+  min-height: clamp(20px, 4vw, 24px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .notification-close:hover {

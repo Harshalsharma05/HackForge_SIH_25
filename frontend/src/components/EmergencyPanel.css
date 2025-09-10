@@ -11,7 +11,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: clamp(10px, 3vw, 20px);
   animation: fadeIn 0.3s ease;
 }
 
@@ -26,9 +26,9 @@
 
 .emergency-panel {
   background: white;
-  border-radius: 20px;
+  border-radius: clamp(15px, 3vw, 20px);
   width: 100%;
-  max-width: 600px;
+  max-width: min(600px, 95vw);
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(255, 71, 87, 0.3);
@@ -51,11 +51,13 @@
 .emergency-header {
   background: linear-gradient(135deg, #ff4757 0%, #ff3838 100%);
   color: white;
-  padding: 25px 30px;
+  padding: clamp(20px, 4vw, 25px) clamp(20px, 5vw, 30px);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-radius: 17px 17px 0 0;
+  border-radius: clamp(12px, 3vw, 17px) clamp(12px, 3vw, 17px) 0 0;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
 }
 
 .emergency-title {
@@ -81,8 +83,9 @@
 
 .emergency-title h2 {
   margin: 0;
-  font-size: 1.8rem;
+  font-size: clamp(1.5rem, 4vw, 1.8rem);
   font-weight: 700;
+  word-break: break-word;
 }
 
 .close-btn {
@@ -104,7 +107,7 @@
 
 /* Form */
 .emergency-form {
-  padding: 30px;
+  padding: clamp(20px, 5vw, 30px);
 }
 
 .form-group {
@@ -128,8 +131,8 @@
 
 .quick-buttons {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
+  gap: clamp(8px, 2vw, 10px);
 }
 
 .quick-btn {
@@ -186,22 +189,23 @@
 /* Emergency Types */
 .emergency-types {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
+  gap: clamp(10px, 2vw, 12px);
 }
 
 .emergency-type-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 15px 10px;
+  gap: clamp(6px, 1.5vw, 8px);
+  padding: clamp(12px, 2.5vw, 15px) clamp(8px, 2vw, 10px);
   border: 2px solid #ddd;
-  border-radius: 12px;
+  border-radius: clamp(10px, 2vw, 12px);
   background: white;
   cursor: pointer;
   transition: all 0.3s ease;
   color: #333;
+  min-height: clamp(80px, 15vw, 100px);
 }
 
 .emergency-type-btn:hover {
@@ -217,25 +221,26 @@
 }
 
 .type-icon {
-  font-size: 1.8rem;
+  font-size: clamp(1.5rem, 3.5vw, 1.8rem);
 }
 
 .type-label {
-  font-size: 0.85rem;
+  font-size: clamp(0.75rem, 2vw, 0.85rem);
   font-weight: 600;
   text-align: center;
   line-height: 1.2;
+  word-break: break-word;
 }
 
 /* Textarea */
 textarea {
   width: 100%;
-  min-height: 80px;
-  padding: 12px;
+  min-height: clamp(70px, 12vw, 80px);
+  padding: clamp(10px, 2vw, 12px);
   border: 2px solid #e9ecef;
-  border-radius: 8px;
+  border-radius: clamp(6px, 1.5vw, 8px);
   font-family: inherit;
-  font-size: 0.95rem;
+  font-size: clamp(0.9rem, 2vw, 0.95rem);
   resize: vertical;
   transition: border-color 0.3s ease;
 }
@@ -391,18 +396,18 @@ textarea:focus {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: clamp(8px, 2vw, 10px);
   width: 100%;
-  padding: 18px;
+  padding: clamp(15px, 3vw, 18px);
   background: linear-gradient(135deg, #ff4757 0%, #ff3838 100%);
   color: white;
   border: none;
-  border-radius: 12px;
-  font-size: 1.1rem;
+  border-radius: clamp(10px, 2vw, 12px);
+  font-size: clamp(1rem, 2.5vw, 1.1rem);
   font-weight: 700;
   cursor: pointer;
   transition: all 0.3s ease;
-  margin-bottom: 15px;
+  margin-bottom: clamp(12px, 2.5vw, 15px);
 }
 
 .emergency-submit-btn:hover:not(:disabled) {
@@ -480,22 +485,12 @@ textarea:focus {
 /* Responsive Design */
 @media (max-width: 768px) {
   .emergency-panel {
-    margin: 10px;
-    max-width: none;
-    border-radius: 15px;
+    margin: var(--space-sm);
   }
 
   .emergency-header {
-    padding: 20px 25px;
-    border-radius: 12px 12px 0 0;
-  }
-
-  .emergency-title h2 {
-    font-size: 1.5rem;
-  }
-
-  .emergency-form {
-    padding: 25px 20px;
+    flex-direction: column;
+    text-align: center;
   }
 
   .quick-buttons {
@@ -503,69 +498,42 @@ textarea:focus {
   }
 
   .emergency-types {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .type-label {
-    font-size: 0.8rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
   }
 
   .emergency-submit-btn {
-    font-size: 1rem;
-    padding: 16px;
+    font-size: clamp(0.9rem, 2.5vw, 1rem);
+    padding: clamp(14px, 3vw, 16px);
   }
 }
 
 @media (max-width: 480px) {
-  .emergency-panel-overlay {
-    padding: 10px;
-  }
-
-  .emergency-header {
-    padding: 15px 20px;
-  }
-
   .emergency-title {
-    gap: 10px;
+    gap: var(--space-sm);
+    flex-direction: column;
   }
 
   .emergency-icon {
-    font-size: 1.5rem;
-  }
-
-  .emergency-title h2 {
-    font-size: 1.3rem;
-  }
-
-  .emergency-form {
-    padding: 20px 15px;
+    font-size: clamp(1.3rem, 3vw, 1.5rem);
   }
 
   .form-group {
-    margin-bottom: 20px;
+    margin-bottom: clamp(15px, 3vw, 20px);
   }
 
   .emergency-types {
     grid-template-columns: 1fr;
   }
 
-  .emergency-type-btn {
-    padding: 12px;
-  }
-
-  .type-icon {
-    font-size: 1.5rem;
-  }
-
   .alert-sent-confirmation {
-    padding: 40px 20px;
+    padding: clamp(30px, 6vw, 40px) clamp(15px, 4vw, 20px);
   }
 
   .alert-sent-confirmation h3 {
-    font-size: 1.5rem;
+    font-size: clamp(1.3rem, 4vw, 1.5rem);
   }
 
   .success-icon {
-    font-size: 3rem;
+    font-size: clamp(2.5rem, 6vw, 3rem);
   }
 }
