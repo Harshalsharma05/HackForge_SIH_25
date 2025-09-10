@@ -7,6 +7,12 @@ const AlertSchema = new mongoose.Schema(
       ref: "Tourist",
       required: true,
     },
+
+    smart_contract_id: {
+      type: String,
+      required: true,
+    },
+
     type: {
       type: String,
       enum: [

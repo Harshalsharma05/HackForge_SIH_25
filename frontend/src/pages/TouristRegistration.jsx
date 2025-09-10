@@ -15,8 +15,8 @@ import {
   FaTrash,
 } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
-import { kycAPI } from "../services/api";
 import "./TouristRegistration.css";
+import axios from "axios";
 
 const TouristRegistration = ({ onBackToLogin }) => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -148,6 +148,8 @@ const TouristRegistration = ({ onBackToLogin }) => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setErrors({});
 
     if (type === "checkbox") {
       setFormData((prev) => ({ ...prev, [name]: checked }));
@@ -275,19 +277,27 @@ const TouristRegistration = ({ onBackToLogin }) => {
 
   const sendOTP = async () => {
     if (!formData.phone.trim()) {
-      setErrors((prev) => ({ ...prev, phone: "Phone number is required" }));
+      setErrors({ otp: "Phone number is required" });
       return;
     }
 
     setLoading(true);
     try {
-      // This would typically send OTP via SMS
-      // For demo purposes, we'll simulate it
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setOtpSent(true);
-      alert("OTP sent to your phone number (Demo: Use 123456)");
-    } catch (error) {
-      setErrors((prev) => ({ ...prev, phone: "Failed to send OTP" }));
+      const res = await axios.post(
+        "http://localhost:3000/api/v1/kyc/send-otp",
+        {
+          phone: formData.phone, // use phone from formData
+        }
+      );
+
+      if (res.data.success) {
+        setOtpSent(true);
+        setErrors({});
+      } else {
+        setErrors({ otp: res.data.message || "Failed to send OTP" });
+      }
+    } catch (err) {
+      setErrors({ otp: err.response?.data?.message || "Failed to send OTP" });
     } finally {
       setLoading(false);
     }
@@ -295,21 +305,30 @@ const TouristRegistration = ({ onBackToLogin }) => {
 
   const verifyOTP = async () => {
     if (!formData.otp.trim()) {
-      setErrors((prev) => ({ ...prev, otp: "OTP is required" }));
+      setErrors({ otp: "OTP is required" });
       return;
     }
 
     setLoading(true);
     try {
-      // For demo purposes, accept 123456 as valid OTP
-      if (formData.otp === "123456") {
+      const res = await axios.post(
+        "http://localhost:3000/api/v1/kyc/verify-otp",
+        {
+          phone: formData.phone, // use phone from formData
+          otp: formData.otp, // user entered OTP
+        }
+      );
+
+      if (res.data.success) {
         setOtpVerified(true);
-        setErrors((prev) => ({ ...prev, otp: "" }));
+        setErrors({});
       } else {
-        setErrors((prev) => ({ ...prev, otp: "Invalid OTP" }));
+        setErrors({ otp: res.data.message || "Invalid OTP" });
       }
-    } catch (error) {
-      setErrors((prev) => ({ ...prev, otp: "OTP verification failed" }));
+    } catch (err) {
+      setErrors({
+        otp: err.response?.data?.message || "OTP verification failed",
+      });
     } finally {
       setLoading(false);
     }
@@ -759,9 +778,6 @@ const TouristRegistration = ({ onBackToLogin }) => {
                   )}
                 </div>
                 {errors.otp && <span className="error-text">{errors.otp}</span>}
-                {otpSent && !otpVerified && (
-                  <p className="otp-info">Demo OTP: 123456</p>
-                )}
               </div>
             </div>
 

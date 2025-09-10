@@ -1,30 +1,49 @@
-import { generateOtp, sendOtp as sendTwilioOtp, saveOtp, verifyOtp as verifyOtpFn } from "../utils/otpUtils.js";
-import Tourist from "../models/tourist.js";
+import { generateOtp, saveOtp, verifyOtp as verifyOtpFn } from "../utils/otpUtils.js";
+import twilio from "twilio";
+
+const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 
 export const sendOtp = async (req, res) => {
-  const { touristId } = req.body;
+  try {
+    const { phone } = req.body;
+    if (!phone) {
+      return res.status(400).json({ success: false, message: "Phone number required" });
+    }
 
-  if (!touristId) return res.status(400).json({ success: false, message: "touristId required" });
+    const otp = generateOtp();
 
-  const tourist = await Tourist.findById(touristId);
-  if (!tourist) return res.status(404).json({ success: false, message: "Tourist not found" });
+    // Send OTP via Twilio SMS
+    await client.messages.create({
+      body: `Your verification code is ${otp}`,
+      from: process.env.TWILIO_PHONE_NUMBER, // Twilio number
+      to: phone,
+    });
 
-  const otp = generateOtp();
-  await sendTwilioOtp(tourist.phone, otp);
-  saveOtp(touristId, otp);
+    // Save OTP (in-memory / Redis / DB)
+    saveOtp(phone, otp);
 
-  res.status(200).json({ success: true, message: "OTP sent via Twilio" });
+    res.status(200).json({ success: true, message: "OTP sent via Twilio" });
+  } catch (err) {
+    console.error("Twilio Send OTP Error:", err.message);
+    res.status(500).json({ success: false, message: "Failed to send OTP" });
+  }
 };
 
 export const verifyOtp = async (req, res) => {
-  const { touristId, otp } = req.body;
-  if (!touristId || !otp) return res.status(400).json({ success: false, message: "touristId and otp required" });
+  try {
+    const { phone, otp } = req.body;
+    if (!phone || !otp) {
+      return res.status(400).json({ success: false, message: "Phone and OTP required" });
+    }
 
-  const isValid = verifyOtpFn(touristId, otp);
-  if (!isValid) return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
+    const isValid = verifyOtpFn(phone, otp);
+    if (!isValid) {
+      return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
+    }
 
-  // Optional: mark KYC as verified
-  await Tourist.findByIdAndUpdate(touristId, { kyc_verified: true });
-
-  res.status(200).json({ success: true, message: "OTP verified successfully" });
+    res.status(200).json({ success: true, message: "OTP verified successfully" });
+  } catch (err) {
+    console.error("Verify OTP Error:", err.message);
+    res.status(500).json({ success: false, message: "Verification failed" });
+  }
 };

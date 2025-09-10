@@ -31,6 +31,19 @@ const getTouristMarkerColor = (status) => {
   }
 };
 
+const getAlertMarkerColor = (severity) => {
+  switch (severity) {
+    case "critical":
+      return "#d32f2f"; // red
+    case "high":
+      return "#ff5722"; // orange
+    case "medium":
+      return "#ffb300"; // yellow
+    default:
+      return "#1976d2"; // blue for low
+  }
+};
+
 const MapClickHandler = ({ onMapClick }) => {
   useMapEvents({
     click: (e) => {
@@ -43,6 +56,7 @@ const MapClickHandler = ({ onMapClick }) => {
 const InteractiveMap = ({
   tourists = [],
   geofences = [],
+  alerts = [],
   selectedTourist,
   onTouristSelect,
   onMapClick,
@@ -181,6 +195,41 @@ const InteractiveMap = ({
                 >
                   View Details
                 </button>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
+      {/* Render alerts */}
+      {alerts
+        .filter((alert) => alert.latitude && alert.longitude)
+        .map((alert) => (
+          <Marker
+            key={alert._id}
+            position={[alert.latitude, alert.longitude]}
+            icon={createCustomIcon(getAlertMarkerColor(alert.severity))}
+          >
+            <Popup>
+              <div>
+                <h4>{alert.title}</h4>
+                <p>
+                  <strong>Type:</strong> {alert.type}
+                </p>
+                <p>
+                  <strong>Severity:</strong> {alert.severity}
+                </p>
+                <p>
+                  <strong>Status:</strong> {alert.status}
+                </p>
+                <p>
+                  <strong>Reported At:</strong>{" "}
+                  {new Date(alert.timestamp).toLocaleString()}
+                </p>
+                {alert.tourist_id?.name && (
+                  <p>
+                    <strong>Tourist:</strong> {alert.tourist_id.name} (
+                    {alert.tourist_id.phone})
+                  </p>
+                )}
               </div>
             </Popup>
           </Marker>
