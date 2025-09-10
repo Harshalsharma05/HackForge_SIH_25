@@ -9,20 +9,33 @@
 .dashboard-header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 20px 30px;
+  padding: clamp(15px, 4vw, 30px);
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   position: sticky;
   top: 0;
   z-index: 1000;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.dashboard-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 1400px;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
 }
 
 .header-left h1 {
   margin: 0;
-  font-size: 1.8rem;
+  font-size: clamp(1.5rem, 4vw, 1.8rem);
   font-weight: 700;
+  word-break: break-word;
 }
 
 .user-status {
@@ -35,7 +48,8 @@
 .header-right {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: clamp(10px, 3vw, 20px);
+  flex-wrap: wrap;
 }
 
 .notification-btn {
@@ -143,17 +157,23 @@
 /* Navigation Styles */
 .dashboard-nav {
   background: white;
-  padding: 0 30px;
+  padding: 0;
   border-bottom: 1px solid #e9ecef;
   position: sticky;
-  top: 88px;
+  top: clamp(70px, 12vw, 88px);
   z-index: 999;
+  display: flex;
+  justify-content: center;
 }
 
 .nav-tabs {
   display: flex;
   gap: 0;
   overflow-x: auto;
+  max-width: 1400px;
+  width: 100%;
+  justify-content: center;
+  padding: 0 clamp(15px, 4vw, 30px);
 }
 
 .nav-tab {
@@ -161,7 +181,7 @@
   flex-direction: column;
   align-items: center;
   gap: 5px;
-  padding: 15px 20px;
+  padding: clamp(10px, 2.5vw, 15px) clamp(15px, 3vw, 20px);
   border: none;
   background: none;
   color: #6c757d;
@@ -169,7 +189,8 @@
   transition: all 0.3s ease;
   border-bottom: 3px solid transparent;
   white-space: nowrap;
-  min-width: 120px;
+  min-width: clamp(100px, 15vw, 120px);
+  font-size: clamp(0.8rem, 2vw, 1rem);
 }
 
 .nav-tab:hover {
@@ -190,9 +211,18 @@
 
 /* Main Content */
 .dashboard-content {
-  padding: 30px;
+  padding: clamp(15px, 4vw, 30px);
   max-width: 1400px;
   margin: 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.dashboard-content > * {
+  width: 100%;
+  max-width: 1200px;
 }
 
 /* Loading */
@@ -233,11 +263,11 @@
 .welcome-header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 30px;
-  border-radius: 20px;
+  padding: clamp(20px, 4vw, 30px);
+  border-radius: clamp(15px, 3vw, 20px);
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: clamp(15px, 3vw, 20px);
   box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
 }
 
@@ -258,14 +288,15 @@
 
 .welcome-text h2 {
   margin: 0 0 5px 0;
-  font-size: 2rem;
+  font-size: clamp(1.5rem, 4vw, 2rem);
   font-weight: 700;
+  word-break: break-word;
 }
 
 .welcome-text p {
   margin: 0;
   opacity: 0.9;
-  font-size: 1.1rem;
+  font-size: clamp(1rem, 2.5vw, 1.1rem);
 }
 
 .status-indicators {
@@ -301,8 +332,8 @@
 /* Stats Grid */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
+  gap: clamp(15px, 3vw, 20px);
 }
 
 .stat-card {
@@ -435,62 +466,136 @@
 }
 
 /* Quick Actions */
+.quick-actions {
+  background: white;
+  padding: clamp(25px, 4vw, 30px);
+  border-radius: clamp(16px, 3vw, 20px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
 .quick-actions h3 {
-  margin: 0 0 20px 0;
+  margin: 0 0 clamp(20px, 4vw, 25px) 0;
   color: #333;
-  font-size: 1.4rem;
+  font-size: clamp(1.3rem, 3vw, 1.5rem);
+  font-weight: 700;
+  text-align: center;
 }
 
 .action-buttons {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 15px;
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+  gap: clamp(15px, 3vw, 20px);
+  justify-content: center;
 }
 
 .action-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 25px;
-  background: white;
-  border: 2px solid #e9ecef;
-  border-radius: 16px;
+  justify-content: center;
+  gap: clamp(10px, 2vw, 12px);
+  padding: clamp(20px, 4vw, 25px) clamp(20px, 4vw, 25px);
+  min-height: clamp(80px, 12vw, 100px);
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border: 2px solid transparent;
+  border-radius: clamp(12px, 2.5vw, 16px);
   cursor: pointer;
   transition: all 0.3s ease;
   text-decoration: none;
   color: #333;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.action-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transition: left 0.5s;
+}
+
+.action-btn:hover::before {
+  left: 100%;
 }
 
 .action-btn:hover {
-  border-color: #667eea;
   transform: translateY(-3px);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.action-btn.plan-trip {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.action-btn.plan-trip:hover {
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+.action-btn.emergency {
+  background: linear-gradient(135deg, #ff4757 0%, #ff3838 100%);
+  color: white;
+}
+
+.action-btn.emergency:hover {
+  box-shadow: 0 8px 25px rgba(255, 71, 87, 0.4);
+}
+
+.action-btn.digital-id {
+  background: linear-gradient(135deg, #ffa726 0%, #ff9800 100%);
+  color: white;
+}
+
+.action-btn.digital-id:hover {
+  box-shadow: 0 8px 25px rgba(255, 167, 38, 0.4);
+}
+
+.action-btn.safety {
+  background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+  color: white;
+}
+
+.action-btn.safety:hover {
+  box-shadow: 0 8px 25px rgba(76, 175, 80, 0.4);
 }
 
 .action-btn svg {
-  font-size: 2rem;
-}
-
-.action-btn.plan-trip svg {
-  color: #667eea;
-}
-
-.action-btn.emergency svg {
-  color: #ff4757;
-}
-
-.action-btn.digital-id svg {
-  color: #ffa726;
-}
-
-.action-btn.safety svg {
-  color: #4caf50;
+  font-size: clamp(1.6rem, 3.5vw, 2rem);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  flex-shrink: 0;
 }
 
 .action-btn span {
   font-weight: 600;
-  font-size: 1rem;
+  font-size: clamp(0.95rem, 2.2vw, 1.1rem);
+  text-align: center;
+  line-height: 1.2;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  color: inherit;
+  display: block;
+  width: 100%;
+}
+
+/* Quick Actions Responsive */
+@media (max-width: 768px) {
+  .action-buttons {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .action-buttons {
+    grid-template-columns: 1fr;
+  }
+  
+  .action-btn {
+    min-height: clamp(70px, 10vw, 85px);
+  }
 }
 
 /* Recent Activity */
@@ -556,15 +661,15 @@
 
 /* Settings Section */
 .settings-section h2 {
-  margin: 0 0 30px 0;
+  margin: 0 0 clamp(20px, 4vw, 30px) 0;
   color: #333;
-  font-size: 2rem;
+  font-size: clamp(1.5rem, 4vw, 2rem);
 }
 
 .settings-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 30px;
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  gap: clamp(20px, 4vw, 30px);
 }
 
 .setting-group {
@@ -737,44 +842,39 @@
 }
 
 /* Responsive Design */
+@media (max-width: 1024px) {
+  .welcome-header {
+    flex-direction: column;
+    text-align: center;
+    gap: var(--space-md);
+  }
+  
+  .status-indicators {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+}
+
 @media (max-width: 768px) {
   .dashboard-header {
-    padding: 15px 20px;
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
   }
-
-  .header-left h1 {
-    font-size: 1.5rem;
-  }
-
-  .dashboard-nav {
-    padding: 0 20px;
+  
+  .header-right {
+    justify-content: center;
   }
 
   .nav-tabs {
     gap: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
-
-  .nav-tab {
-    min-width: 100px;
-    padding: 12px 15px;
-  }
-
-  .nav-tab span {
-    font-size: 0.8rem;
-  }
-
-  .dashboard-content {
-    padding: 20px;
-  }
-
-  .welcome-header {
-    flex-direction: column;
-    text-align: center;
-    gap: 15px;
-  }
-
-  .status-indicators {
-    justify-content: center;
+  
+  .nav-tabs::-webkit-scrollbar {
+    display: none;
   }
 
   .stats-grid {
@@ -783,70 +883,54 @@
 
   .trip-details {
     flex-direction: column;
-    gap: 15px;
+    gap: var(--space-md);
   }
 
   .trip-actions {
     justify-content: center;
+    flex-wrap: wrap;
   }
 
   .action-buttons {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .settings-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
   }
 
   .emergency-fab {
-    bottom: 20px;
-    right: 20px;
+    bottom: clamp(15px, 3vw, 20px);
+    right: clamp(15px, 3vw, 20px);
   }
 
   .emergency-btn {
-    width: 50px;
-    height: 50px;
-    font-size: 1.2rem;
+    width: clamp(45px, 8vw, 50px);
+    height: clamp(45px, 8vw, 50px);
+    font-size: clamp(1rem, 2.5vw, 1.2rem);
   }
 }
 
 @media (max-width: 480px) {
-  .dashboard-header {
-    padding: 12px 15px;
-  }
-
-  .header-left h1 {
-    font-size: 1.3rem;
-  }
-
-  .dashboard-content {
-    padding: 15px;
-  }
-
   .welcome-header {
-    padding: 20px;
+    padding: var(--space-md);
   }
 
   .user-avatar {
-    width: 60px;
-    height: 60px;
-    font-size: 1.5rem;
+    width: clamp(50px, 10vw, 60px);
+    height: clamp(50px, 10vw, 60px);
+    font-size: clamp(1.2rem, 3vw, 1.5rem);
   }
 
   .welcome-text h2 {
-    font-size: 1.5rem;
+    font-size: clamp(1.3rem, 4vw, 1.5rem);
   }
 
   .action-buttons {
     grid-template-columns: 1fr;
   }
 
-  .nav-tab {
-    min-width: 80px;
-    padding: 10px 12px;
-  }
-
   .nav-tab span {
     display: none;
+  }
+  
+  .nav-tab {
+    min-width: clamp(60px, 12vw, 80px);
   }
 }

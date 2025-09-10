@@ -341,19 +341,21 @@ const TripPlanner = () => {
   return (
     <div className="trip-planner">
       <div className="trip-planner-header">
-        <div className="header-content">
-          <h2>Trip Planner</h2>
-          <p>
-            Plan, organize, and manage your travel adventures with
-            blockchain-secured digital IDs
-          </p>
+        <div className="trip-planner-header-content">
+          <div className="header-content">
+            <h2>Trip Planner</h2>
+            <p>
+              Plan, organize, and manage your travel adventures with
+              blockchain-secured digital IDs
+            </p>
+          </div>
+          <button
+            className="btn-primary create-trip-btn"
+            onClick={() => setShowCreateForm(true)}
+          >
+            <FaPlus /> Create New Trip
+          </button>
         </div>
-        <button
-          className="btn-primary create-trip-btn"
-          onClick={() => setShowCreateForm(true)}
-        >
-          <FaPlus /> Create New Trip
-        </button>
       </div>
 
       {/* Filters and Search */}
