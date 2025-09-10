@@ -242,6 +242,16 @@ const initializeSocketIO = (server) => {
             safety_status: locationResult.safety_status,
             timestamp: new Date(),
           });
+          
+          const anomalyAlert = await checkLocationForAnomalies(
+            trip_id,
+            locationResult.location
+          );
+
+          if (anomalyAlert) {
+              // An anomaly was detected, notify the authorities
+              adminNamespace.emit("new_alert", anomalyAlert);
+          }
 
           // Check for geo-fence violations
           if (locationResult.safety_status.violations.length > 0) {
@@ -252,18 +262,6 @@ const initializeSocketIO = (server) => {
               violations: locationResult.safety_status.violations,
               timestamp: new Date(),
             };
-
-            const anomalyAlert = await checkLocationForAnomalies(
-              trip_id,
-              locationResult.location // We need to pass the newly created location document
-            );
-
-            if (anomalyAlert) {
-              // An anomaly was detected and an alert was created
-              // Notify the authorities dashboard in real-time
-              adminNamespace.emit("new_alert", anomalyAlert);
-            }
-
             // Alert tourist
             socket.emit("geofence_alert", alertData);
 
