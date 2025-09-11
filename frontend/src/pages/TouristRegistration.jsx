@@ -842,7 +842,7 @@ const TouristRegistration = ({ onBackToLogin }) => {
       <div className="registration-container">
         <div className="registration-header">
           <h2>Tourist Registration</h2>
-          <p>Join SafeTour for a secure travel experience</p>
+          <p>Join Trayana for a secure travel experience</p>
         </div>
 
         <div className="progress-bar">

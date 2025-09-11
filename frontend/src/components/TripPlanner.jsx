@@ -321,6 +321,21 @@ const TripPlanner = () => {
     }
   };
 
+  const getStatusBadgeStyles = (status) => {
+    switch (status) {
+      case "planned":
+        return "bg-blue-100 text-blue-800";
+      case "active":
+        return "bg-green-100 text-green-800";
+      case "completed":
+        return "bg-gray-100 text-gray-800";
+      case "cancelled":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-purple-100 text-purple-800";
+    }
+  };
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -339,49 +354,81 @@ const TripPlanner = () => {
   }
 
   return (
-    <div className="trip-planner">
-      <div className="trip-planner-header">
-        <div className="trip-planner-header-content">
-          <div className="header-content">
-            <h2>Trip Planner</h2>
-            <p>
-              Plan, organize, and manage your travel adventures with
-              blockchain-secured digital IDs
-            </p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-purple-700 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+            <div className="text-center lg:text-left">
+              <h2 className="text-3xl lg:text-4xl font-bold mb-3">
+                Trip Planner
+              </h2>
+              <p className="text-lg text-blue-100 max-w-2xl">
+                Plan, organize, and manage your travel adventures with secure
+                digital IDs
+              </p>
+            </div>
+            <button
+              className="inline-flex items-center gap-2 px-6 py-3 bg-white text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-colors shadow-lg"
+              onClick={() => setShowCreateForm(true)}
+            >
+              <FaPlus className="w-4 h-4" />
+              Create New Trip
+            </button>
           </div>
-          <button
-            className="btn-primary create-trip-btn"
-            onClick={() => setShowCreateForm(true)}
-          >
-            <FaPlus /> Create New Trip
-          </button>
         </div>
       </div>
 
       {/* Filters and Search */}
-      <div className="trip-controls">
-        <div className="search-box">
-          <FaSearch className="search-icon" />
-          <input
-            type="text"
-            placeholder="Search trips..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+            <div className="relative flex-1 max-w-md">
+              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Search trips..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
 
-        <div className="filter-dropdown">
-          <FaFilter className="filter-icon" />
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-          >
-            {tripStatuses.map((status) => (
-              <option key={status.value} value={status.value}>
-                {status.label}
-              </option>
-            ))}
-          </select>
+            <div className="relative">
+              <FaFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer"
+              >
+                {tripStatuses.map((status) => (
+                  <option key={status.value} value={status.value}>
+                    {status.label}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                <svg
+                  className="w-4 h-4 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </div>
+            </div>
+
+            <div className="text-sm text-gray-600">
+              {filteredTrips.length} trip{filteredTrips.length !== 1 ? "s" : ""}{" "}
+              found
+            </div>
+          </div>
         </div>
       </div>
 
@@ -658,163 +705,203 @@ const TripPlanner = () => {
       )}
 
       {/* Trip List */}
-      <div className="trips-grid">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
         {filteredTrips.length === 0 ? (
-          <div className="no-trips">
-            <FaRoute className="no-trips-icon" />
-            <h3>No trips found</h3>
-            <p>
+          <div className="text-center py-16 px-4">
+            <FaRoute className="mx-auto w-16 h-16 text-gray-300 mb-6" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              No trips found
+            </h3>
+            <p className="text-gray-600 max-w-md mx-auto mb-8">
               {searchTerm || filterStatus !== "all"
                 ? "Try adjusting your search or filter criteria."
                 : "Start planning your first adventure!"}
             </p>
             {!searchTerm && filterStatus === "all" && (
               <button
-                className="btn-primary"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
                 onClick={() => setShowCreateForm(true)}
               >
-                <FaPlus /> Create Your First Trip
+                <FaPlus className="w-4 h-4" />
+                Create Your First Trip
               </button>
             )}
           </div>
         ) : (
-          filteredTrips.map((trip) => (
-            <div key={trip._id} className="trip-card">
-              <div className="trip-card-header">
-                <div className="trip-title">
-                  <h3>{safeRender(trip.trip_name || trip.title)}</h3>
-                  <div className="trip-badges">
-                    <div
-                      className="trip-status"
-                      style={{ backgroundColor: getStatusColor(trip.status) }}
-                    >
-                      {safeRender(trip.status)}
-                    </div>
-                    {trip.digital_id && (
-                      <div className="digital-id-badge">
-                        <FaCube className="badge-icon" />
-                        ID: {safeRender(trip.digital_id)}
+          <div className="space-y-6">
+            {filteredTrips.map((trip) => (
+              <div
+                key={trip._id}
+                className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-lg transition-all duration-300 overflow-hidden"
+              >
+                {/* Trip Card Header */}
+                <div className="p-6 border-b border-gray-100">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-2">
+                        <h3 className="text-xl font-bold text-gray-900 truncate">
+                          {safeRender(trip.trip_name || trip.title)}
+                        </h3>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide ${getStatusBadgeStyles(
+                              trip.status
+                            )}`}
+                          >
+                            {safeRender(trip.status)}
+                          </span>
+                          {trip.tracking_enabled && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              📍 Tracking
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                </div>
-                <div className="trip-actions">
-                  {trip.qr_codes && (
-                    <button
-                      className="action-btn qr-code"
-                      onClick={() => handleShowQRCode(trip)}
-                      title="Show QR Code"
-                    >
-                      <FaQrcode />
-                    </button>
-                  )}
-                  {(trip.status === "active" || trip.status === "planned") &&
-                    trip.tracking_enabled && (
+
+                      {/* Trip Details Row */}
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                        <div className="flex items-center gap-1">
+                          <FaMapMarkerAlt className="text-gray-400" />
+                          <span className="font-medium">
+                            {safeRender(trip.destination)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <FaCalendarAlt className="text-gray-400" />
+                          <span>
+                            {formatDate(trip.start_date || trip.startDate)} -{" "}
+                            {formatDate(trip.end_date || trip.endDate)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <FaShieldAlt className="text-gray-400" />
+                          <span className="capitalize">
+                            {trip.purpose || "Tourism"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2">
+                      {trip.qr_codes && (
+                        <button
+                          className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-purple-100 text-purple-600 hover:bg-purple-600 hover:text-white transition-colors"
+                          onClick={() => handleShowQRCode(trip)}
+                          title="Show QR Code"
+                        >
+                          <FaQrcode className="w-4 h-4" />
+                        </button>
+                      )}
+                      {(trip.status === "active" ||
+                        trip.status === "planned") &&
+                        trip.tracking_enabled && (
+                          <button
+                            className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white transition-colors"
+                            onClick={() => handleShowLocationTester(trip)}
+                            title="Test Location Update"
+                          >
+                            <FaLocationArrow className="w-4 h-4" />
+                          </button>
+                        )}
                       <button
-                        className="action-btn location-test"
-                        onClick={() => handleShowLocationTester(trip)}
-                        title="Test Location Update"
+                        className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-600 hover:text-white transition-colors"
+                        onClick={() => handleEditTrip(trip)}
+                        title="Edit trip"
                       >
-                        <FaLocationArrow />
+                        <FaEdit className="w-4 h-4" />
                       </button>
-                    )}
-                  <button
-                    className="action-btn edit"
-                    onClick={() => handleEditTrip(trip)}
-                    title="Edit trip"
-                  >
-                    <FaEdit />
-                  </button>
-                  <button
-                    className="action-btn delete"
-                    onClick={() => handleDeleteTrip(trip._id)}
-                    title="Delete trip"
-                  >
-                    <FaTrash />
-                  </button>
-                </div>
-              </div>
-
-              <div className="trip-details">
-                <div className="detail-item">
-                  <FaMapMarkerAlt className="detail-icon" />
-                  <span>{safeRender(trip.destination)}</span>
-                </div>
-
-                <div className="detail-item">
-                  <FaCalendarAlt className="detail-icon" />
-                  <span>
-                    {formatDate(trip.start_date || trip.startDate)} -{" "}
-                    {formatDate(trip.end_date || trip.endDate)}
-                  </span>
-                </div>
-
-                <div className="detail-item">
-                  <FaShieldAlt className="detail-icon" />
-                  <span>Purpose: {trip.purpose || "Tourism"}</span>
-                </div>
-
-                {trip.tracking_enabled && (
-                  <div className="detail-item">
-                    <span className="tracking-badge">
-                      📍 Location Tracking Enabled
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {trip.itinerary && (
-                <p className="trip-description">{trip.itinerary}</p>
-              )}
-
-              {trip.blockchain_status && (
-                <div className="blockchain-info">
-                  <span
-                    className={`blockchain-status ${trip.blockchain_status}`}
-                  >
-                    🔗 Blockchain: {safeRender(trip.blockchain_status)}
-                  </span>
-                </div>
-              )}
-
-              <div className="trip-card-footer">
-                {trip.status === "planned" && (
-                  <button
-                    className="btn-primary start-trip"
-                    onClick={() => handleStartTrip(trip._id)}
-                  >
-                    <FaPlay /> Start Trip
-                  </button>
-                )}
-
-                {trip.status === "active" && (
-                  <>
-                    <button
-                      className="btn-secondary complete-trip"
-                      onClick={() => handleCompleteTrip(trip._id)}
-                    >
-                      <FaCheck /> Complete Trip
-                    </button>
-                    {trip.tracking_enabled && (
                       <button
-                        className="btn-location-test"
-                        onClick={() => handleShowLocationTester(trip)}
+                        className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-red-100 text-red-600 hover:bg-red-600 hover:text-white transition-colors"
+                        onClick={() => handleDeleteTrip(trip._id)}
+                        title="Delete trip"
                       >
-                        <FaLocationArrow /> Test Location
+                        <FaTrash className="w-4 h-4" />
                       </button>
-                    )}
-                  </>
-                )}
-
-                {trip.status === "completed" && (
-                  <div className="completed-badge">
-                    <FaStar className="star-icon" />
-                    <span>Trip Completed</span>
+                    </div>
                   </div>
-                )}
+                </div>
+
+                {/* Trip Content */}
+                <div className="p-6">
+                  <div className="flex flex-col lg:flex-row gap-6">
+                    {/* Left Section - Trip Description */}
+                    <div className="flex-1">
+                      {trip.itinerary && (
+                        <div className="mb-4">
+                          <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                            Itinerary
+                          </h4>
+                          <p
+                            className="text-gray-600 text-sm leading-relaxed overflow-hidden"
+                            style={{
+                              display: "-webkit-box",
+                              WebkitLineClamp: 3,
+                              WebkitBoxOrient: "vertical",
+                            }}
+                          >
+                            {trip.itinerary}
+                          </p>
+                        </div>
+                      )}
+
+                      {trip.accommodation_details && (
+                        <div className="mb-4">
+                          <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                            Accommodation
+                          </h4>
+                          <p className="text-gray-600 text-sm">
+                            {trip.accommodation_details}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right Section - Action Buttons */}
+                    <div className="flex flex-col sm:flex-row lg:flex-col gap-3 lg:w-48">
+                      {trip.status === "planned" && (
+                        <button
+                          className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+                          onClick={() => handleStartTrip(trip._id)}
+                        >
+                          <FaPlay className="w-4 h-4" />
+                          Start Trip
+                        </button>
+                      )}
+
+                      {trip.status === "active" && (
+                        <>
+                          <button
+                            className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                            onClick={() => handleCompleteTrip(trip._id)}
+                          >
+                            <FaCheck className="w-4 h-4" />
+                            Complete Trip
+                          </button>
+                          {trip.tracking_enabled && (
+                            <button
+                              className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
+                              onClick={() => handleShowLocationTester(trip)}
+                            >
+                              <FaLocationArrow className="w-4 h-4" />
+                              Test Location
+                            </button>
+                          )}
+                        </>
+                      )}
+
+                      {trip.status === "completed" && (
+                        <div className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg">
+                          <FaStar className="w-4 h-4 text-yellow-500" />
+                          <span className="font-medium">Completed</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
 

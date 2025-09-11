@@ -65,6 +65,107 @@ const InteractiveMap = ({
 }) => {
   const [mapCenter, setMapCenter] = useState(center);
   const [mapZoom, setMapZoom] = useState(zoom);
+  const [locationInfo, setLocationInfo] = useState({}); // Store location info for each tourist
+  const [loadingLocation, setLoadingLocation] = useState({}); // Track loading state for each tourist
+
+  // Function to fetch location info using reverse geocoding
+  const fetchLocationInfo = async (lat, lng, touristId) => {
+    try {
+      setLoadingLocation((prev) => ({ ...prev, [touristId]: true }));
+
+      // Using OpenStreetMap's Nominatim API for reverse geocoding
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&accept-language=en`
+      );
+      const data = await response.json();
+
+      if (data && data.address) {
+        const locationData = {
+          area:
+            data.address.suburb ||
+            data.address.neighbourhood ||
+            data.address.locality ||
+            data.address.village ||
+            data.address.town ||
+            data.address.city_district ||
+            data.address.city ||
+            "Unknown Area",
+          city:
+            data.address.city ||
+            data.address.town ||
+            data.address.village ||
+            data.address.municipality ||
+            "Unknown City",
+          state:
+            data.address.state ||
+            data.address.state_district ||
+            "Unknown State",
+          country: data.address.country || "Unknown Country",
+          postcode: data.address.postcode || "",
+          display_name: data.display_name || "Unknown Location",
+        };
+
+        setLocationInfo((prev) => ({
+          ...prev,
+          [touristId]: locationData,
+        }));
+
+        return locationData;
+      }
+    } catch (error) {
+      console.error("Error fetching location info:", error);
+      const fallbackData = {
+        area: "Unknown Area",
+        city: "Unknown City",
+        state: "Unknown State",
+        country: "Unknown Country",
+        postcode: "",
+        display_name: "Location unavailable",
+      };
+
+      setLocationInfo((prev) => ({
+        ...prev,
+        [touristId]: fallbackData,
+      }));
+
+      return fallbackData;
+    } finally {
+      setLoadingLocation((prev) => ({ ...prev, [touristId]: false }));
+    }
+  };
+
+  // Preload location information for all tourists when they change
+  useEffect(() => {
+    const loadLocationInfo = async () => {
+      const touristsToProcess = tourists.filter(
+        (tourist) =>
+          tourist.location &&
+          tourist.location.latitude &&
+          tourist.location.longitude &&
+          !locationInfo[tourist.trip_id] && // Only fetch if not already cached
+          !loadingLocation[tourist.trip_id] // Don't fetch if already loading
+      );
+
+      // Process tourists with a small delay between requests to avoid rate limiting
+      for (let i = 0; i < touristsToProcess.length; i++) {
+        const tourist = touristsToProcess[i];
+        await fetchLocationInfo(
+          tourist.location.latitude,
+          tourist.location.longitude,
+          tourist.trip_id
+        );
+
+        // Add a small delay between requests (except for the last one)
+        if (i < touristsToProcess.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 500)); // 500ms delay
+        }
+      }
+    };
+
+    if (tourists.length > 0) {
+      loadLocationInfo();
+    }
+  }, [tourists]); // Re-run when tourists data changes
 
   const getGeofenceColor = (riskLevel) => {
     switch (riskLevel) {
@@ -77,11 +178,20 @@ const InteractiveMap = ({
     }
   };
 
-  const handleTouristClick = (tourist) => {
+  const handleTouristClick = async (tourist) => {
     onTouristSelect(tourist);
     if (tourist.location) {
       setMapCenter([tourist.location.latitude, tourist.location.longitude]);
       setMapZoom(15);
+
+      // Fetch location info if not already cached
+      if (!locationInfo[tourist.trip_id]) {
+        await fetchLocationInfo(
+          tourist.location.latitude,
+          tourist.location.longitude,
+          tourist.trip_id
+        );
+      }
     }
   };
 
@@ -166,34 +276,163 @@ const InteractiveMap = ({
             }}
           >
             <Popup>
-              <div>
-                <h4>{tourist.tourist?.name || "Tourist"}</h4>
-                <p>
-                  <strong>Trip:</strong> {tourist.trip_name}
-                </p>
-                <p>
-                  <strong>Status:</strong> {tourist.status || "active"}
-                </p>
-                <p>
-                  <strong>Destination:</strong> {tourist.destination}
-                </p>
-                <p>
-                  <strong>Last Update:</strong>{" "}
-                  {new Date(tourist.location.timestamp).toLocaleString()}
-                </p>
+              <div style={{ minWidth: "250px" }}>
+                <h4
+                  style={{
+                    margin: "0 0 12px 0",
+                    color: "#333",
+                    fontSize: "16px",
+                  }}
+                >
+                  {tourist.tourist?.name || "Tourist"}
+                </h4>
+
+                {/* Location Information */}
+                {loadingLocation[tourist.trip_id] ? (
+                  <div
+                    style={{
+                      background: "#f8f9fa",
+                      padding: "8px",
+                      borderRadius: "6px",
+                      marginBottom: "12px",
+                      border: "1px solid #e9ecef",
+                      textAlign: "center",
+                    }}
+                  >
+                    <div style={{ fontSize: "13px", color: "#6c757d" }}>
+                      🔄 Loading location details...
+                    </div>
+                  </div>
+                ) : locationInfo[tourist.trip_id] ? (
+                  <div
+                    style={{
+                      background: "#f8f9fa",
+                      padding: "8px",
+                      borderRadius: "6px",
+                      marginBottom: "12px",
+                      border: "1px solid #e9ecef",
+                    }}
+                  >
+                    <h5
+                      style={{
+                        margin: "0 0 6px 0",
+                        color: "#495057",
+                        fontSize: "14px",
+                      }}
+                    >
+                      📍 Current Location
+                    </h5>
+                    <div style={{ fontSize: "13px", lineHeight: "1.4" }}>
+                      <div>
+                        <strong>Area:</strong>{" "}
+                        {locationInfo[tourist.trip_id].area}
+                      </div>
+                      <div>
+                        <strong>City:</strong>{" "}
+                        {locationInfo[tourist.trip_id].city}
+                      </div>
+                      <div>
+                        <strong>State:</strong>{" "}
+                        {locationInfo[tourist.trip_id].state}
+                      </div>
+                      {locationInfo[tourist.trip_id].postcode && (
+                        <div>
+                          <strong>Pincode:</strong>{" "}
+                          {locationInfo[tourist.trip_id].postcode}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      background: "#fff3cd",
+                      padding: "8px",
+                      borderRadius: "6px",
+                      marginBottom: "12px",
+                      border: "1px solid #ffeaa7",
+                    }}
+                  >
+                    <div style={{ fontSize: "13px", color: "#856404" }}>
+                      📍 Click to load location details
+                    </div>
+                  </div>
+                )}
+
+                {/* Trip Information */}
+                <div style={{ marginBottom: "8px" }}>
+                  <p style={{ margin: "4px 0", fontSize: "13px" }}>
+                    <strong>Trip:</strong> {tourist.trip_name}
+                  </p>
+                  <p style={{ margin: "4px 0", fontSize: "13px" }}>
+                    <strong>Status:</strong>
+                    <span
+                      style={{
+                        background:
+                          tourist.status === "emergency"
+                            ? "#ffebee"
+                            : "#e8f5e8",
+                        color:
+                          tourist.status === "emergency"
+                            ? "#c62828"
+                            : "#2e7d32",
+                        padding: "2px 6px",
+                        borderRadius: "3px",
+                        marginLeft: "4px",
+                        fontSize: "12px",
+                      }}
+                    >
+                      {tourist.status || "active"}
+                    </span>
+                  </p>
+                  <p style={{ margin: "4px 0", fontSize: "13px" }}>
+                    <strong>Destination:</strong> {tourist.destination}
+                  </p>
+                </div>
+
+                {/* Coordinates */}
+                <div
+                  style={{
+                    background: "#f1f3f4",
+                    padding: "6px",
+                    borderRadius: "4px",
+                    marginBottom: "8px",
+                  }}
+                >
+                  <p
+                    style={{
+                      margin: "2px 0",
+                      fontSize: "12px",
+                      fontFamily: "monospace",
+                    }}
+                  >
+                    <strong>Coordinates:</strong>
+                    <br />
+                    {tourist.location.latitude.toFixed(6)},{" "}
+                    {tourist.location.longitude.toFixed(6)}
+                  </p>
+                  <p style={{ margin: "2px 0", fontSize: "12px" }}>
+                    <strong>Last Update:</strong>
+                    <br />
+                    {new Date(tourist.location.timestamp).toLocaleString()}
+                  </p>
+                </div>
+
                 <button
                   onClick={() => handleTouristClick(tourist)}
                   style={{
                     background: "#2196f3",
                     color: "white",
                     border: "none",
-                    padding: "6px 12px",
+                    padding: "8px 16px",
                     borderRadius: "4px",
                     cursor: "pointer",
-                    marginTop: "8px",
+                    width: "100%",
+                    fontSize: "13px",
+                    fontWeight: "500",
                   }}
                 >
-                  View Details
+                  View Full Details
                 </button>
               </div>
             </Popup>

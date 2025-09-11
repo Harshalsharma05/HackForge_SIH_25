@@ -22,7 +22,7 @@ const AppRouter = () => {
           color: "#673AB7",
         }}
       >
-        Loading SafeTour...
+        Loading Trayana...
       </div>
     );
   }

@@ -162,7 +162,7 @@ const LoginPage = () => {
           </a>
           {loginType === "tourist" && (
             <div className="register-link">
-              <span>New to SafeTour? </span>
+              <span>New to Trayana? </span>
               <a
                 href="#"
                 onClick={(e) => {
@@ -213,7 +213,7 @@ const LoginPage = () => {
       </div>
 
       {/* Backend Connection Test */}
-      <TestBackendConnection />
+      {/* <TestBackendConnection /> */}
     </div>
   );
 };

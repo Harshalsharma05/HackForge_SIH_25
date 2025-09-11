@@ -92,26 +92,21 @@ const LocationTester = ({ selectedTrip, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [updateResult, setUpdateResult] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
-  const [mapCenter, setMapCenter] = useState([28.6139, 77.209]); // Default to Delhi as fallback
-  const [mapZoom, setMapZoom] = useState(10);
+  const [mapCenter, setMapCenter] = useState([20.5937, 78.9629]); // Default to India center
+  const [mapZoom, setMapZoom] = useState(5); // Zoomed out to show entire India
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [locationLoaded, setLocationLoaded] = useState(false);
-  const [locationLoading, setLocationLoading] = useState(true);
+  const [locationInfo, setLocationInfo] = useState({}); // Store location info
+  const [loadingLocationInfo, setLoadingLocationInfo] = useState(false);
 
   useEffect(() => {
-    // Get user's location first, then handle trip destination
-    getCurrentLocationFromBrowser();
-
     if (selectedTrip?.destination) {
       loadDestinationSuggestions(selectedTrip.destination);
-      // Only set destination center if user location hasn't been loaded yet
-      if (locationLoaded) {
-        setMapCenterForDestination(selectedTrip.destination);
-      }
+      setMapCenterForDestination(selectedTrip.destination);
     }
-  }, [selectedTrip, locationLoaded]);
+    getCurrentLocationFromBrowser();
+  }, [selectedTrip]);
 
   const loadDestinationSuggestions = (destination) => {
     const destKey = destination.toLowerCase();
@@ -127,11 +122,6 @@ const LocationTester = ({ selectedTrip, onClose }) => {
   };
 
   const setMapCenterForDestination = (destination) => {
-    // Only set destination center if user location is not available
-    if (currentLocation) {
-      return; // User location takes priority
-    }
-
     const destKey = destination.toLowerCase();
     const matchingKey = Object.keys(destinationCoordinates).find(
       (key) => destKey.includes(key) || key.includes(destKey)
@@ -145,7 +135,6 @@ const LocationTester = ({ selectedTrip, onClose }) => {
   };
 
   const getCurrentLocationFromBrowser = () => {
-    setLocationLoading(true);
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -155,21 +144,15 @@ const LocationTester = ({ selectedTrip, onClose }) => {
           };
           setCurrentLocation(userLocation);
 
-          // Center the map on user's location with higher zoom
-          setMapCenter([userLocation.lat, userLocation.lng]);
-          setMapZoom(13);
-          setLocationLoaded(true);
-          setLocationLoading(false);
+          // Center map on user's location if no trip destination is set
+          if (!selectedTrip?.destination) {
+            setMapCenter([userLocation.lat, userLocation.lng]);
+            setMapZoom(12);
+          }
         },
         (error) => {
           console.log("Could not get current location:", error);
-          setLocationLoaded(true);
-          setLocationLoading(false);
-
-          // If location fails and we have a trip destination, center on that
-          if (selectedTrip?.destination) {
-            setMapCenterForDestination(selectedTrip.destination);
-          }
+          // Keep default India center if geolocation fails
         },
         {
           enableHighAccuracy: true,
@@ -177,56 +160,30 @@ const LocationTester = ({ selectedTrip, onClose }) => {
           maximumAge: 300000, // 5 minutes
         }
       );
-    } else {
-      console.log("Geolocation is not supported by this browser");
-      setLocationLoaded(true);
-      setLocationLoading(false);
-
-      // If geolocation not supported and we have a trip destination, center on that
-      if (selectedTrip?.destination) {
-        setMapCenterForDestination(selectedTrip.destination);
-      }
     }
   };
 
-  const handleLocationSelect = (latlng) => {
+  const handleLocationSelect = async (latlng) => {
     setSelectedLocation(latlng);
     setUpdateResult(null);
     // Clear search results when map is clicked
     setSearchResults([]);
     // Optionally clear search query or set it to coordinates
     setSearchQuery(`${latlng.lat.toFixed(4)}, ${latlng.lng.toFixed(4)}`);
+
+    // Fetch location information for the selected point
+    await fetchLocationInfo(latlng.lat, latlng.lng);
   };
 
-  const handleSuggestionClick = (suggestion) => {
+  const handleSuggestionClick = async (suggestion) => {
     const latlng = { lat: suggestion.lat, lng: suggestion.lng };
     setSelectedLocation(latlng);
     setMapCenter([suggestion.lat, suggestion.lng]);
     setMapZoom(15);
     setUpdateResult(null);
-  };
 
-  const centerOnUserLocation = () => {
-    if (currentLocation) {
-      setMapCenter([currentLocation.lat, currentLocation.lng]);
-      setMapZoom(15);
-    } else {
-      // Try to get location again if not available
-      getCurrentLocationFromBrowser();
-    }
-  };
-
-  // Show loading indicator in header if location is being fetched
-  const getLocationStatus = () => {
-    if (locationLoading) {
-      return "📍 Getting your location...";
-    }
-    if (currentLocation) {
-      return `📍 Located at ${currentLocation.lat.toFixed(
-        4
-      )}, ${currentLocation.lng.toFixed(4)}`;
-    }
-    return "📍 Location not available";
+    // Fetch location information for the selected suggestion
+    await fetchLocationInfo(suggestion.lat, suggestion.lng);
   };
 
   const handleUpdateLocation = async () => {
@@ -285,6 +242,62 @@ const LocationTester = ({ selectedTrip, onClose }) => {
     } catch (error) {
       console.error("Reverse geocoding failed:", error);
       return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    }
+  };
+
+  const fetchLocationInfo = async (lat, lng) => {
+    try {
+      setLoadingLocationInfo(true);
+
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&accept-language=en`
+      );
+      const data = await response.json();
+
+      if (data && data.address) {
+        const locationData = {
+          area:
+            data.address.suburb ||
+            data.address.neighbourhood ||
+            data.address.locality ||
+            data.address.village ||
+            data.address.town ||
+            data.address.city_district ||
+            data.address.city ||
+            "Unknown Area",
+          city:
+            data.address.city ||
+            data.address.town ||
+            data.address.village ||
+            data.address.municipality ||
+            "Unknown City",
+          state:
+            data.address.state ||
+            data.address.state_district ||
+            "Unknown State",
+          country: data.address.country || "Unknown Country",
+          postcode: data.address.postcode || "",
+          display_name: data.display_name || "Unknown Location",
+        };
+
+        setLocationInfo(locationData);
+        return locationData;
+      }
+    } catch (error) {
+      console.error("Error fetching location info:", error);
+      const fallbackData = {
+        area: "Unknown Area",
+        city: "Unknown City",
+        state: "Unknown State",
+        country: "Unknown Country",
+        postcode: "",
+        display_name: "Location unavailable",
+      };
+
+      setLocationInfo(fallbackData);
+      return fallbackData;
+    } finally {
+      setLoadingLocationInfo(false);
     }
   };
 
@@ -363,33 +376,9 @@ const LocationTester = ({ selectedTrip, onClose }) => {
     };
   }, [searchTimeout]);
 
-  // Handle backdrop click to close
-  const handleBackdropClick = (e) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
-  // Handle escape key to close
-  useEffect(() => {
-    const handleEscKey = (e) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    };
-
-    document.addEventListener("keydown", handleEscKey);
-    return () => {
-      document.removeEventListener("keydown", handleEscKey);
-    };
-  }, [onClose]);
-
   return (
-    <div className="location-tester" onClick={handleBackdropClick}>
-      <div
-        className="location-tester-content"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="location-tester">
+      <div className="location-tester-content">
         {/* Search Section */}
         <div className="search-section">
           <div className="search-container">
@@ -444,29 +433,27 @@ const LocationTester = ({ selectedTrip, onClose }) => {
         </div>
 
         <div className="map-section">
-          <div className="map-controls">
-            {currentLocation && (
-              <button
-                className="center-user-location-btn"
-                onClick={centerOnUserLocation}
-                title="Center map on your location"
-              >
-                📍 My Location
-              </button>
-            )}
-            <button
-              className="close-btn"
-              onClick={onClose}
-              title="Close Location Tester"
-            >
-              ✕
-            </button>
-          </div>
+          {/* Close Button - positioned over the map */}
+          <button className="close-btn-map" onClick={onClose}>
+            ×
+          </button>
+
           <MapContainer
             center={mapCenter}
             zoom={mapZoom}
-            style={{ height: "400px", width: "100%" }}
+            style={{
+              height: "100%",
+              width: "100%",
+              minHeight: "400px",
+              borderRadius: "0",
+              overflow: "hidden",
+              flex: 1,
+            }}
             key={`${mapCenter[0]}-${mapCenter[1]}-${mapZoom}`}
+            zoomControl={true}
+            scrollWheelZoom={true}
+            doubleClickZoom={true}
+            touchZoom={true}
           >
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -499,23 +486,71 @@ const LocationTester = ({ selectedTrip, onClose }) => {
                 icon={selectedLocationIcon}
               >
                 <Popup>
-                  <div>
-                    <strong>Selected Test Location</strong>
-                    <br />
-                    {selectedLocation.lat.toFixed(4)},{" "}
-                    {selectedLocation.lng.toFixed(4)}
-                    <br />
+                  <div style={{ minWidth: "250px" }}>
+                    <strong style={{ fontSize: "14px", color: "#333" }}>
+                      Selected Test Location
+                    </strong>
+
+                    {/* Location Information */}
+                    {loadingLocationInfo ? (
+                      <div
+                        style={{
+                          background: "#f8f9fa",
+                          padding: "8px",
+                          borderRadius: "6px",
+                          margin: "8px 0",
+                          textAlign: "center",
+                        }}
+                      >
+                        🔄 Loading location details...
+                      </div>
+                    ) : locationInfo.display_name ? (
+                      <div
+                        style={{
+                          background: "#f8f9fa",
+                          padding: "8px",
+                          borderRadius: "6px",
+                          margin: "8px 0",
+                          fontSize: "12px",
+                        }}
+                      >
+                        <div>
+                          <strong>Area:</strong> {locationInfo.area}
+                        </div>
+                        <div>
+                          <strong>City:</strong> {locationInfo.city}
+                        </div>
+                        <div>
+                          <strong>State:</strong> {locationInfo.state}
+                        </div>
+                        {locationInfo.postcode && (
+                          <div>
+                            <strong>Pincode:</strong> {locationInfo.postcode}
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
+
+                    <div style={{ fontSize: "12px", margin: "8px 0" }}>
+                      <strong>Coordinates:</strong>
+                      <br />
+                      {selectedLocation.lat.toFixed(6)},{" "}
+                      {selectedLocation.lng.toFixed(6)}
+                    </div>
+
                     <button
                       onClick={handleUpdateLocation}
                       disabled={loading}
                       style={{
                         marginTop: "8px",
-                        padding: "4px 8px",
+                        padding: "8px 16px",
                         background: "#2196f3",
                         color: "white",
                         border: "none",
                         borderRadius: "4px",
                         cursor: "pointer",
+                        width: "100%",
+                        fontSize: "12px",
                       }}
                     >
                       {loading ? "Updating..." : "Update Location"}
@@ -527,13 +562,13 @@ const LocationTester = ({ selectedTrip, onClose }) => {
           </MapContainer>
         </div>
 
+        {/* Header Section - moved below the map */}
         <div className="location-tester-header">
           <h3>Location Tester</h3>
           <p>
             Click on the map or select a popular location to test location
             updates
           </p>
-          <div className="location-status">{getLocationStatus()}</div>
           {selectedTrip && (
             <div className="trip-info">
               <strong>Testing for:</strong> {selectedTrip.trip_name} -{" "}
@@ -563,7 +598,39 @@ const LocationTester = ({ selectedTrip, onClose }) => {
           {selectedLocation && (
             <div className="selected-location-info">
               <h4>Selected Location</h4>
-              <p>
+
+              {/* Location Information */}
+              {loadingLocationInfo ? (
+                <div className="location-loading">
+                  🔄 Loading location details...
+                </div>
+              ) : locationInfo.display_name ? (
+                <div className="location-details">
+                  <div className="location-item">
+                    <strong>📍 Location:</strong> {locationInfo.area}
+                  </div>
+                  <div className="location-item">
+                    <strong>🏙️ City:</strong> {locationInfo.city}
+                  </div>
+                  <div className="location-item">
+                    <strong>🗺️ State:</strong> {locationInfo.state}
+                  </div>
+                  {locationInfo.postcode && (
+                    <div className="location-item">
+                      <strong>📮 Pincode:</strong> {locationInfo.postcode}
+                    </div>
+                  )}
+                  <div className="location-item">
+                    <strong>🌍 Country:</strong> {locationInfo.country}
+                  </div>
+                </div>
+              ) : (
+                <div className="location-placeholder">
+                  Click on map to load location details
+                </div>
+              )}
+
+              <p className="coordinates-info">
                 <strong>Coordinates:</strong> {selectedLocation.lat.toFixed(6)},{" "}
                 {selectedLocation.lng.toFixed(6)}
               </p>
@@ -625,17 +692,14 @@ const LocationTester = ({ selectedTrip, onClose }) => {
           <div className="instructions">
             <h4>How to Use</h4>
             <ul>
-              <li>
-                🔍 Use the search bar to find locations by name or address
-              </li>
-              <li>🗺️ Click anywhere on the map to select a test location</li>
+              <li>� Use the search bar to find locations by name or address</li>
+              <li>�🗺️ Click anywhere on the map to select a test location</li>
               <li>📍 Use popular location buttons for quick selection</li>
               <li>🎯 The green dot shows your current browser location</li>
               <li>
                 🔄 Click "Update Location" to test the location update API
               </li>
               <li>⚠️ Any geofence violations will be displayed after update</li>
-              <li>❌ Click outside the modal or press ESC to close</li>
             </ul>
           </div>
         </div>

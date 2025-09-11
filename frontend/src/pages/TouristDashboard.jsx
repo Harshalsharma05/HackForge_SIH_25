@@ -44,11 +44,28 @@ const TouristDashboard = () => {
     lastUpdate: new Date(),
   });
   const [emergencyContacts, setEmergencyContacts] = useState([]);
+  const [allTrips, setAllTrips] = useState([]);
   const [locationStatus, setLocationStatus] = useState({
     enabled: false,
     accuracy: 0,
     lastUpdate: null,
   });
+
+  // Format date helper function
+  const formatDate = (date) => {
+    if (!date) return "Not set";
+    try {
+      const dateObj = new Date(date);
+      if (isNaN(dateObj.getTime())) return "Not set";
+      return dateObj.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    } catch (error) {
+      return "Not set";
+    }
+  };
 
   // Navigation tabs configuration
   const navigationTabs = [
@@ -76,9 +93,11 @@ const TouristDashboard = () => {
       // Load trip history count
       const tripsResponse = await tripAPI.getTouristTrips({ limit: 100 });
       if (tripsResponse.data.success) {
+        const trips = tripsResponse.data.data.trips || [];
+        setAllTrips(trips);
         setDashboardStats((prev) => ({
           ...prev,
-          totalTrips: tripsResponse.data.data.trips?.length || 0,
+          totalTrips: trips.length,
           activeTrip: currentTripResponse.data.data,
         }));
       }
@@ -152,7 +171,7 @@ const TouristDashboard = () => {
         </div>
         <div className="welcome-text">
           <h2>Welcome back, {user?.name || "Tourist"}!</h2>
-          <p>Stay safe and enjoy your travels with SafeTour</p>
+          <p>Stay safe and enjoy your travels with Trayana</p>
         </div>
         <div className="status-indicators">
           <div
@@ -167,10 +186,10 @@ const TouristDashboard = () => {
             <FaWifi />
             <span>Connected</span>
           </div>
-          <div className="status-item active">
+          {/* <div className="status-item active">
             <FaBatteryFull />
             <span>Battery OK</span>
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -190,7 +209,7 @@ const TouristDashboard = () => {
             <FaShieldAlt />
           </div>
           <div className="stat-content">
-            <h3>{dashboardStats.safetyScore}%</h3>
+            <h3>{dashboardStats.safetyScore}</h3>
             <p>Safety Score</p>
           </div>
         </div>
@@ -205,7 +224,7 @@ const TouristDashboard = () => {
           </div>
         </div>
 
-        <div className="stat-card">
+        {/* <div className="stat-card">
           <div className="stat-icon location">
             <FaMapMarkerAlt />
           </div>
@@ -213,7 +232,7 @@ const TouristDashboard = () => {
             <h3>{locationStatus.enabled ? "Active" : "Inactive"}</h3>
             <p>Location Tracking</p>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {currentTrip && (
@@ -229,16 +248,8 @@ const TouristDashboard = () => {
               <h4>{currentTrip.destination}</h4>
               <p>{currentTrip.purpose}</p>
               <div className="trip-dates">
-                <span>
-                  Start:{" "}
-                  {new Date(
-                    currentTrip.planned_start_date
-                  ).toLocaleDateString()}
-                </span>
-                <span>
-                  End:{" "}
-                  {new Date(currentTrip.planned_end_date).toLocaleDateString()}
-                </span>
+                <span>Start: {formatDate(currentTrip.planned_start_date)}</span>
+                <span>End: {formatDate(currentTrip.planned_end_date)}</span>
               </div>
             </div>
             <div className="trip-actions">
@@ -259,7 +270,7 @@ const TouristDashboard = () => {
         </div>
       )}
 
-      <div className="quick-actions">
+      {/* <div className="quick-actions">
         <h3>Quick Actions</h3>
         <div className="action-buttons">
           <button
@@ -293,6 +304,58 @@ const TouristDashboard = () => {
             <FaShieldAlt />
             <span>Safety Center</span>
           </button>
+        </div>
+      </div> */}
+
+      {/* Trips Preview Section */}
+      <div className="trips-preview">
+        <div className="trips-preview-header">
+          <h3>Your Trips</h3>
+          <button
+            className="view-all-btn"
+            onClick={() => setActiveTab("trips")}
+          >
+            View All
+          </button>
+        </div>
+        <div className="trips-horizontal-scroll">
+          {allTrips.length > 0 ? (
+            allTrips.slice(0, 5).map((trip) => (
+              <div key={trip._id} className="trip-preview-card">
+                <div className="trip-preview-header">
+                  <h4>{trip.destination}</h4>
+                  <span className={`trip-status-small ${trip.status}`}>
+                    {trip.status}
+                  </span>
+                </div>
+                <div className="trip-preview-content">
+                  <p className="trip-purpose">{trip.purpose}</p>
+                  <div className="trip-preview-dates">
+                    <span>{formatDate(trip.planned_start_date)}</span>
+                    <span>to</span>
+                    <span>{formatDate(trip.planned_end_date)}</span>
+                  </div>
+                  <button
+                    className="trip-preview-action"
+                    onClick={() => setActiveTab("trips")}
+                  >
+                    View Details
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="no-trips-preview">
+              <FaRoute className="no-trips-icon" />
+              <p>No trips planned yet</p>
+              <button
+                className="plan-first-trip-btn"
+                onClick={() => setActiveTab("trips")}
+              >
+                Plan Your First Trip
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -445,7 +508,7 @@ const TouristDashboard = () => {
   };
 
   return (
-    <div className="tourist-dashboard">
+    <div className="min-h-screen bg-gray-50 font-sans">
       {/* Location Tracker Component - Coming Soon */}
       {/* <LocationTracker 
         onLocationUpdate={setLocationStatus}
@@ -453,32 +516,82 @@ const TouristDashboard = () => {
       /> */}
 
       {/* Header */}
-      <header className="dashboard-header">
-        <div className="dashboard-header-content">
-          <div className="header-left">
-            <h1>SafeTour Dashboard</h1>
-            <span className="user-status">Tourist • {user?.name || "User"}</span>
-          </div>
+      <header className="sticky top-0 z-50 bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 shadow-lg backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 sm:h-20">
+            {/* Left side - Logo and title */}
+            <div className="flex items-center space-x-4">
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                  <FaRoute className="text-white text-xl" />
+                </div>
+              </div>
+              <div className="hidden sm:block">
+                <h1 className="text-xl sm:text-2xl font-bold text-white">
+                  Trayana Dashboard
+                </h1>
+                <p className="text-white/80 text-sm">
+                  Tourist • {user?.name || "User"}
+                </p>
+              </div>
+              <div className="sm:hidden">
+                <h1 className="text-lg font-bold text-white">Trayana</h1>
+              </div>
+            </div>
 
-          <div className="header-right">
-            <button className="notification-btn">
-              <FaBell />
-              <span className="notification-badge">3</span>
-            </button>
-
-            <div className="user-menu">
-              <button className="user-avatar-btn">
-                <FaUser />
-              </button>
-              <div className="user-dropdown">
-                <a href="#profile">Profile</a>
-                <a href="#settings" onClick={() => setActiveTab("settings")}>
-                  Settings
-                </a>
-                <a href="#help">Help</a>
-                <button onClick={logout}>
-                  <FaSignOutAlt /> Logout
+            {/* Right side - Actions */}
+            <div className="flex items-center space-x-3 sm:space-x-4">
+              {/* Notifications */}
+              <div className="relative">
+                <button className="p-2 sm:p-3 bg-white/20 hover:bg-white/30 rounded-xl transition-all duration-200 hover:scale-105 group">
+                  <FaBell className="text-white text-lg sm:text-xl" />
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-semibold animate-pulse">
+                    3
+                  </span>
                 </button>
+              </div>
+
+              {/* User Menu */}
+              <div className="relative group">
+                <button className="flex items-center space-x-2 p-2 sm:p-3 bg-white/20 hover:bg-white/30 rounded-xl transition-all duration-200 hover:scale-105">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/30 rounded-lg flex items-center justify-center">
+                    <FaUser className="text-white text-sm sm:text-base" />
+                  </div>
+                  <div className="hidden md:block text-left">
+                    <p className="text-white font-medium text-sm">
+                      {user?.name || "User"}
+                    </p>
+                    <p className="text-white/70 text-xs">Tourist</p>
+                  </div>
+                </button>
+
+                {/* Dropdown Menu */}
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-1 group-hover:translate-y-0 z-50">
+                  <div className="py-1">
+                    <button
+                      onClick={() => setActiveTab("settings")}
+                      className="flex items-center space-x-3 w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
+                    >
+                      <FaUser className="text-gray-400" />
+                      <span>Profile</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("settings")}
+                      className="flex items-center space-x-3 w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
+                    >
+                      <FaCog className="text-gray-400" />
+                      <span>Settings</span>
+                    </button>
+                    <div className="border-t border-gray-100 my-1"></div>
+                    <button
+                      onClick={logout}
+                      className="flex items-center space-x-3 w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150"
+                    >
+                      <FaSignOutAlt className="text-red-500" />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -486,46 +599,60 @@ const TouristDashboard = () => {
       </header>
 
       {/* Navigation */}
-      <nav className="dashboard-nav">
-        <div className="nav-tabs">
-          {navigationTabs.map((tab) => (
-            <button
-              key={tab.id}
-              className={`nav-tab ${activeTab === tab.id ? "active" : ""}`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              <tab.icon />
-              <span>{tab.label}</span>
-            </button>
-          ))}
+      <nav className="sticky top-16 sm:top-20 z-40 bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex space-x-1 overflow-x-auto scrollbar-hide">
+            {navigationTabs.map((tab) => (
+              <button
+                key={tab.id}
+                className={`flex flex-col items-center justify-center px-4 sm:px-6 py-3 sm:py-4 min-w-[80px] sm:min-w-[100px] transition-all duration-200 border-b-2 whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? "text-indigo-600 border-indigo-600 bg-indigo-50"
+                    : "text-gray-600 border-transparent hover:text-indigo-600 hover:border-indigo-300 hover:bg-gray-50"
+                }`}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                <tab.icon
+                  className={`text-lg sm:text-xl mb-1 ${
+                    activeTab === tab.id ? "text-indigo-600" : "text-gray-500"
+                  }`}
+                />
+                <span className="text-xs sm:text-sm font-medium">
+                  {tab.label}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       </nav>
 
       {/* Main Content */}
-      <main className="dashboard-content">{renderContent()}</main>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {renderContent()}
+      </main>
 
       {/* Emergency Quick Access */}
-      <div className="dashboard">
-        {/* Your other components */}
-
-        <div className="emergency-fab">
-          <button className="emergency-btn" onClick={handlePanicClick}>
-            <FaExclamationTriangle />
-          </button>
-        </div>
-
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-        />
+      <div className="fixed bottom-6 right-6 z-50">
+        <button
+          onClick={handlePanicClick}
+          className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center group hover:scale-110 active:scale-95"
+        >
+          <FaExclamationTriangle className="text-xl sm:text-2xl animate-pulse group-hover:animate-none" />
+        </button>
       </div>
+
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        className="mt-20"
+      />
 
       {/* Emergency Panel Modal */}
       <EmergencyPanel
