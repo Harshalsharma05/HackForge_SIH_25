@@ -31,6 +31,8 @@ const AuthorityDashboard = () => {
   const [notifications, setNotifications] = useState([]);
   const [selectedQRType, setSelectedQRType] = useState("digital_id"); // For QR code type selection
   const [showTouristDetails, setShowTouristDetails] = useState(true); // For mobile toggle
+  const [connectionStatus, setConnectionStatus] = useState("connecting"); // "connected", "connecting", "error"
+  const [retryCount, setRetryCount] = useState(0);
 
   // Real-time updates
   const [ws, setWs] = useState(null);
@@ -51,14 +53,31 @@ const AuthorityDashboard = () => {
   const fetchInitialData = async () => {
     try {
       setLoading(true);
-      await Promise.all([
-        fetchDashboardStats(),
-        fetchActiveTourists(),
-        fetchGeofences(),
-        fetchRecentAlerts(),
-      ]);
+      setConnectionStatus("connecting");
+
+      // Fetch data sequentially instead of simultaneously to reduce server load
+      await fetchDashboardStats();
+      await fetchActiveTourists();
+      await fetchGeofences();
+      await fetchRecentAlerts();
+
+      setConnectionStatus("connected");
+      setRetryCount(0);
     } catch (error) {
       console.error("Error fetching initial data:", error);
+      setConnectionStatus("error");
+
+      // Show user-friendly error message
+      if (error.code === "ECONNABORTED") {
+        console.warn("Request timeout - retrying in 5 seconds...");
+        setRetryCount((prev) => prev + 1);
+
+        if (retryCount < 3) {
+          setTimeout(() => {
+            fetchInitialData();
+          }, 5000);
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -66,9 +85,21 @@ const AuthorityDashboard = () => {
 
   const fetchLiveData = async () => {
     try {
-      await Promise.all([fetchActiveTourists(), fetchRecentAlerts()]);
+      // Only fetch if we're currently connected
+      if (connectionStatus === "connected") {
+        await fetchActiveTourists();
+        await fetchRecentAlerts();
+        setConnectionStatus("connected");
+      }
     } catch (error) {
       console.error("Error fetching live data:", error);
+      if (error.code === "ECONNABORTED") {
+        console.warn("Live data fetch timed out");
+        // Don't change connection status to error for live data timeouts
+        // Just skip this update cycle
+      } else {
+        setConnectionStatus("error");
+      }
     }
   };
 
@@ -80,6 +111,12 @@ const AuthorityDashboard = () => {
       setDashboardStats(response.data.data);
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
+
+      if (error.code === "ECONNABORTED") {
+        console.warn("Dashboard stats request timed out");
+        return;
+      }
+
       console.error("Error details:", {
         status: error.response?.status,
         message: error.response?.data?.message,
@@ -110,13 +147,24 @@ const AuthorityDashboard = () => {
       setTourists(validTourists);
     } catch (error) {
       console.error("Error fetching active tourists:", error);
+
+      if (error.code === "ECONNABORTED") {
+        console.warn("Active tourists request timed out");
+        // Don't clear existing tourists data on timeout
+        return;
+      }
+
       console.error("Error details:", {
         status: error.response?.status,
         message: error.response?.data?.message,
         auth: localStorage.getItem("authToken") ? "Token exists" : "No token",
         userType: localStorage.getItem("userType"),
       });
-      setTourists([]);
+
+      // Only clear tourists data if it's not a timeout
+      if (error.code !== "ECONNABORTED") {
+        setTourists([]);
+      }
     }
   };
 
@@ -175,7 +223,17 @@ const AuthorityDashboard = () => {
       setAlerts(alertsArray);
     } catch (error) {
       console.error("Error fetching recent alerts:", error);
-      setAlerts([]);
+
+      if (error.code === "ECONNABORTED") {
+        console.warn("Recent alerts request timed out");
+        // Don't clear existing alerts data on timeout
+        return;
+      }
+
+      // Only clear alerts data if it's not a timeout
+      if (error.code !== "ECONNABORTED") {
+        setAlerts([]);
+      }
     }
   };
 
@@ -345,8 +403,15 @@ const AuthorityDashboard = () => {
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent"></div>
           <p className="text-muted-foreground font-medium">
-            Loading dashboard...
+            {connectionStatus === "connecting"
+              ? "Connecting to server..."
+              : "Loading dashboard..."}
           </p>
+          {retryCount > 0 && (
+            <p className="text-sm text-yellow-600">
+              Retry attempt {retryCount}/3
+            </p>
+          )}
         </div>
       </div>
     );
@@ -378,6 +443,41 @@ const AuthorityDashboard = () => {
             </div>
 
             <div className="flex items-center gap-4">
+              {/* Connection Status Indicator */}
+              <div className="flex items-center gap-2">
+                <div
+                  className={`w-3 h-3 rounded-full ${
+                    connectionStatus === "connected"
+                      ? "bg-green-500 animate-pulse"
+                      : connectionStatus === "connecting"
+                      ? "bg-yellow-500 animate-pulse"
+                      : "bg-red-500"
+                  }`}
+                ></div>
+                <span className="text-sm text-muted-foreground hidden sm:inline">
+                  {connectionStatus === "connected" && "Connected"}
+                  {connectionStatus === "connecting" && "Connecting..."}
+                  {connectionStatus === "error" &&
+                    `Connection Error ${
+                      retryCount > 0 ? `(Retry ${retryCount}/3)` : ""
+                    }`}
+                </span>
+              </div>
+
+              {/* Retry Button for connection errors */}
+              {connectionStatus === "error" && (
+                <button
+                  onClick={() => {
+                    setRetryCount(0);
+                    fetchInitialData();
+                  }}
+                  className="flex items-center gap-2 bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Retry
+                </button>
+              )}
+
               {/* Stats Pills */}
               <div className="hidden lg:flex items-center gap-3">
                 {/* Active Tourists */}
