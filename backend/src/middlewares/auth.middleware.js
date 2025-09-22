@@ -2,6 +2,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import jwt from "jsonwebtoken";
 import Tourist from "../models/tourist.js";
+import Admin from "../models/admin.js";
 
 export const verifyJWT = asyncHandler(async (req, _, next) => {
   try {
@@ -63,4 +64,42 @@ export const checkDigitalIdExpiry = asyncHandler(async (req, _, next) => {
     );
   }
   next();
+});
+
+export const verifyTouristOrAdminJWT = asyncHandler(async (req, res, next) => {
+  try {
+    const token =
+      req.cookies?.accessToken ||
+      req.header("Authorization")?.replace("Bearer ", "");
+
+    if (!token) {
+      throw new ApiError(401, "Unauthorized request: No token provided");
+    }
+
+    const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+
+    // First, try to find an admin with the decoded ID
+    const admin = await Admin.findById(decodedToken?._id).select("-password -refresh_token");
+
+    if (admin && admin.is_active) {
+      // If a valid admin is found, attach it to the request and proceed
+      req.admin = admin;
+      return next(); 
+    }
+
+    // If no admin was found, try to find a tourist
+    const tourist = await Tourist.findById(decodedToken?._id).select("-password -refreshToken");
+
+    if (tourist) {
+      // If a valid tourist is found, attach it to the request and proceed
+      req.tourist = tourist;
+      return next();
+    }
+    
+    // If neither an active admin nor a tourist is found, the token is invalid
+    throw new ApiError(401, "Invalid Access Token: User not found");
+
+  } catch (error) {
+    throw new ApiError(401, error?.message || "Invalid access token");
+  }
 });

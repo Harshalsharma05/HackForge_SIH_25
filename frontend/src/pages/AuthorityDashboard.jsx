@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import api from "../services/api";
+import api, { dashboardAPI } from "../services/api";
 import InteractiveMap from "../components/InteractiveMap";
 import NotificationSystem from "../components/NotificationSystem";
 // import TestControls from "../components/TestControls";
@@ -24,6 +24,7 @@ const AuthorityDashboard = () => {
   const { user, logout } = useAuth();
   const [geofences, setGeofences] = useState([]);
   const [tourists, setTourists] = useState([]);
+  const [heatmapData, setHeatmapData] = useState([]); // Add heatmap data state
   const [selectedTourist, setSelectedTourist] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dashboardStats, setDashboardStats] = useState(null);
@@ -37,15 +38,34 @@ const AuthorityDashboard = () => {
   // Real-time updates
   const [ws, setWs] = useState(null);
 
+  // WebSocket setup for real-time updates
+  const setupWebSocket = () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      // Use fetch-based approach for now instead of WebSocket to avoid dependency issues
+      // Set up more frequent polling for near real-time updates
+      const realTimeInterval = setInterval(fetchActiveTourists, 5000); // Update every 5 seconds
+      
+      return () => {
+        clearInterval(realTimeInterval);
+      };
+    } catch (error) {
+      console.error('Real-time setup error:', error);
+    }
+  };
+
   useEffect(() => {
     fetchInitialData();
-    // setupWebSocket();
+    const cleanupRealTime = setupWebSocket();
 
-    // Set up polling for real-time updates
+    // Set up polling for other data
     const interval = setInterval(fetchLiveData, 30000); // Update every 30 seconds
 
     return () => {
       clearInterval(interval);
+      if (cleanupRealTime) cleanupRealTime();
       if (ws) ws.close();
     };
   }, []);
@@ -128,9 +148,9 @@ const AuthorityDashboard = () => {
 
   const fetchActiveTourists = async () => {
     try {
-      console.log("Fetching active tourists...");
-      const response = await api.get("/dashboard/active-tourists");
-      console.log("Active tourists response:", response.data);
+      console.log("🔍 Fetching active tourists...");
+      const response = await dashboardAPI.getActiveTourists();
+      console.log("✅ Active tourists response:", response.data);
       const touristsData = response.data.data?.tourists || [];
 
       // Filter out tourists with invalid location data
@@ -143,13 +163,25 @@ const AuthorityDashboard = () => {
         );
       });
 
-      console.log("Valid tourists:", validTourists);
+      console.log("👥 Valid tourists:", validTourists);
       setTourists(validTourists);
+
+      // Generate heatmap data from tourist locations
+      const heatmapPoints = validTourists
+        .filter(tourist => tourist.location && tourist.location.latitude && tourist.location.longitude)
+        .map(tourist => ({
+          lat: tourist.location.latitude,
+          lng: tourist.location.longitude,
+          intensity: 1, // Basic intensity, can be enhanced based on risk level, time spent, etc.
+        }));
+      
+      console.log("🔥 Heatmap points:", heatmapPoints);
+      setHeatmapData(heatmapPoints);
     } catch (error) {
-      console.error("Error fetching active tourists:", error);
+      console.error("❌ Error fetching active tourists:", error);
 
       if (error.code === "ECONNABORTED") {
-        console.warn("Active tourists request timed out");
+        console.warn("⏰ Active tourists request timed out");
         // Don't clear existing tourists data on timeout
         return;
       }
@@ -170,30 +202,32 @@ const AuthorityDashboard = () => {
 
   const fetchGeofences = async () => {
     try {
-      console.log("Fetching geofences...");
-      const response = await api.get("/dashboard/geofences");
-      console.log("Geofences response:", response.data);
+      console.log("🗺️ Fetching geofences...");
+      const response = await dashboardAPI.getGeofenceData();
+      console.log("✅ Geofences response:", response);
+      
+      // Debug: Log the actual structure
+      console.log("📍 Raw geofence data:", response.data);
+      
       const geofencesData = response.data.data?.geofences || [];
-
-      // Filter out geofences with invalid coordinates
-      const validGeofences = geofencesData.filter((fence) => {
-        const lat = fence.center_lat || fence.latitude;
-        const lng = fence.center_lng || fence.longitude;
-        return (
-          lat !== undefined && lng !== undefined && !isNaN(lat) && !isNaN(lng)
-        );
+      console.log("🗺️ Geofences array:", geofencesData);
+      
+      // Remove strict filtering - accept any geofence with basic location data
+      const validGeofences = geofencesData.filter(geofence => {
+        const hasLatLng = (geofence.latitude || geofence.center_lat) && 
+                         (geofence.longitude || geofence.center_lng);
+        
+        if (!hasLatLng) {
+          console.log("❌ Invalid geofence (no coordinates):", geofence);
+        }
+        
+        return hasLatLng;
       });
-
-      console.log("Valid geofences:", validGeofences);
+      
+      console.log("🗺️ Valid geofences after filtering:", validGeofences);
       setGeofences(validGeofences);
     } catch (error) {
-      console.error("Error fetching geofences:", error);
-      console.error("Error details:", {
-        status: error.response?.status,
-        message: error.response?.data?.message,
-        auth: localStorage.getItem("authToken") ? "Token exists" : "No token",
-        userType: localStorage.getItem("userType"),
-      });
+      console.error("❌ Error fetching geofences:", error);
       setGeofences([]);
     }
   };
@@ -220,6 +254,8 @@ const AuthorityDashboard = () => {
         : Array.isArray(response.data?.alerts)
         ? response.data.alerts
         : [];
+
+      console.log(`🚨 Total alerts fetched: ${alertsArray.length}`);
       setAlerts(alertsArray);
     } catch (error) {
       console.error("Error fetching recent alerts:", error);
@@ -563,6 +599,7 @@ const AuthorityDashboard = () => {
                 tourists={tourists}
                 geofences={geofences}
                 alerts={alerts}
+                heatmapData={heatmapData} // Add heatmap data
                 selectedTourist={selectedTourist}
                 onTouristSelect={handleTouristSelect}
                 center={[20.5937, 78.9629]} // Center of India coordinates

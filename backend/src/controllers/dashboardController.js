@@ -28,11 +28,11 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     // Get stats for the last 24 hours
     const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-    // Active tourists (with current trips)
+    // Active tourists (including recently completed trips within last 24 hours)
     const activeTourists = await Trip.countDocuments({
-      status: "active",
+      status: { $in: ["active", "completed"] },
       start_date: { $lte: new Date() },
-      end_date: { $gte: new Date() },
+      end_date: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
     });
 
     // Total tourists in system
@@ -102,164 +102,97 @@ const getActiveTourists = asyncHandler(async (req, res) => {
   const adminZones = req.admin.assigned_zones || [];
 
   try {
-    // First, let's check total trips and active trips
-    const totalTrips = await Trip.countDocuments({});
-    const activeTripsCount = await Trip.countDocuments({
-      status: "active",
+    console.log('🔍 Fetching active tourists...');
+    
+    // Query for both active and recently completed trips to show tourists who might still be trackable
+    const activeTrips = await Trip.find({
+      status: { $in: ["active", "completed"] },
       start_date: { $lte: new Date() },
-      end_date: { $gte: new Date() },
-    });
+      // Include trips that ended recently (within the last day) as well as future trips
+      end_date: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+    })
+    .populate('tourist_id', 'name email phone nationality emergency_contacts')
+    .populate('blockchain_digital_id')
+    .limit(parseInt(limit))
+    .lean();
 
-    console.log(`Debug: Total trips in database: ${totalTrips}`);
-    console.log(`Debug: Active trips count: ${activeTripsCount}`);
+    console.log(`📊 Found ${activeTrips.length} active trips`);
 
-    // Build aggregation pipeline
-    const pipeline = [
-      // Match active trips
-      {
-        $match: {
-          status: "active",
-          start_date: { $lte: new Date() },
-          end_date: { $gte: new Date() },
-        },
-      },
-      // Lookup tourist details
-      {
-        $lookup: {
-          from: "tourists",
-          localField: "tourist_id",
-          foreignField: "_id",
-          as: "tourist",
-        },
-      },
-      {
-        $unwind: "$tourist",
-      },
-      // Lookup latest location (without time restriction)
-      {
-        $lookup: {
-          from: "locations",
-          let: { touristId: "$tourist_id" },
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ["$tourist_id", "$$touristId"] },
-              },
-            },
-            { $sort: { timestamp: -1 } },
-            { $limit: 1 },
-          ],
-          as: "latest_location",
-        },
-      },
-      // Lookup digital ID (with better field handling)
-      {
-        $lookup: {
-          from: "digitalids",
-          localField: "_id",
-          foreignField: "trip_id",
-          as: "digital_id_data",
-        },
-      },
-      // Project required fields
-      {
-        $project: {
-          trip_id: "$_id",
-          digital_id: {
-            $cond: {
-              if: { $gt: [{ $size: "$digital_id_data" }, 0] },
-              then: { $arrayElemAt: ["$digital_id_data.digital_id", 0] },
-              else: null,
-            },
-          },
-          trip_name: 1,
-          destination: 1,
-          status: 1,
-          start_date: 1,
-          end_date: 1,
-          tourist: {
-            _id: "$tourist._id",
-            name: "$tourist.name",
-            email: "$tourist.email",
-            phone: "$tourist.phone",
-            nationality: "$tourist.nationality",
-            emergency_contacts: "$tourist.emergency_contacts",
-          },
-          location: {
-            $arrayElemAt: ["$latest_location", 0],
-          },
-          blockchain_status: 1,
-          qr_codes: 1,
-        },
-      },
-      // Include all active tourists regardless of location data
-      // This ensures we see all tourists with active trips
-      { $limit: parseInt(limit) },
-    ];
+    // Get latest locations for these trips
+    const tripsWithLocations = await Promise.all(
+      activeTrips.map(async (trip) => {
+        if (!trip.tourist_id || !trip.tourist_id._id) {
+          console.warn(`⚠️ Skipping trip ${trip._id} due to missing tourist_id`);
+          return null;
+        }
+        try {
+          const latestLocation = await Location.findOne({
+            tourist_id: trip.tourist_id._id,
+          }).sort({ timestamp: -1 });
 
-    // Filter by zone if admin has restricted access
-    if (
-      req.admin.role !== "admin" &&
-      adminZones.length > 0 &&
-      !adminZones.includes("all")
-    ) {
-      // Add zone filtering logic here if needed
-      // This would require zone mapping in location data
-    }
-
-    const activeTourists = await Trip.aggregate(pipeline);
-
-    // Add more detailed debugging information
-    console.log(
-      `Debug: Found ${activeTourists.length} active tourists after aggregation`
-    );
-    console.log(
-      `Debug: Query filters - zone: ${zone || "all"}, status: ${
-        status || "active"
-      }, limit: ${limit}`
+          return {
+            trip_id: trip._id,
+            digital_id: trip.digital_id,
+            trip_name: trip.trip_name,
+            destination: trip.destination,
+            status: trip.status,
+            start_date: trip.start_date,
+            end_date: trip.end_date,
+            tourist: trip.tourist_id,
+            location: latestLocation ? {
+              latitude: latestLocation.latitude,
+              longitude: latestLocation.longitude,
+              timestamp: latestLocation.timestamp,
+              accuracy: latestLocation.accuracy
+            } : null,
+            blockchain_status: trip.blockchain_status,
+            qr_codes: trip.qr_codes,
+          };
+        } catch (error) {
+          console.error(`Error fetching location for trip ${trip._id}:`, error);
+          return {
+            trip_id: trip._id,
+            digital_id: trip.digital_id,
+            trip_name: trip.trip_name,
+            destination: trip.destination,
+            status: trip.status,
+            start_date: trip.start_date,
+            end_date: trip.end_date,
+            tourist: trip.tourist_id,
+            location: null,
+            blockchain_status: trip.blockchain_status,
+            qr_codes: trip.qr_codes,
+          };
+        }
+      })
     );
 
-    // Check if we have trips but no tourists after join
-    const activeTripsBeforeJoin = await Trip.find({
-      status: "active",
-      start_date: { $lte: new Date() },
-      end_date: { $gte: new Date() },
-    }).limit(5);
-
-    console.log(
-      `Debug: Sample active trips before join:`,
-      activeTripsBeforeJoin.map((trip) => ({
-        _id: trip._id,
-        tourist_id: trip.tourist_id,
-        trip_name: trip.trip_name,
-        status: trip.status,
-      }))
-    );
-
-    // Check if tourists exist
-    const touristCount = await Tourist.countDocuments({});
-    console.log(`Debug: Total tourists in database: ${touristCount}`);
-
-    // Log some sample data for debugging
-    if (activeTourists.length > 0) {
-      console.log(`Debug: Sample tourist data:`, {
-        trip_id: activeTourists[0].trip_id,
-        tourist_name: activeTourists[0].tourist?.name,
-        has_location: !!activeTourists[0].location,
-        location_timestamp: activeTourists[0].location?.timestamp,
+    // Filter out null results first, then show ALL tourists (not just those with recent locations)
+    const validTrips = tripsWithLocations.filter(trip => trip !== null);
+    
+    console.log(`📍 ${validTrips.length} valid tourists found (showing all, not just with recent locations)`);
+    
+    // Add detailed logging to see what's in the location data
+    validTrips.forEach((trip, index) => {
+      console.log(`🧑‍🎤 Tourist ${index + 1}:`, {
+        trip_id: trip.trip_id,
+        tourist_name: trip.tourist?.name,
+        has_location: !!trip.location,
+        location_details: trip.location ? {
+          lat: trip.location.latitude,
+          lng: trip.location.longitude,
+          timestamp: trip.location.timestamp
+        } : 'No location'
       });
-    } else {
-      console.log(
-        `Debug: No tourists found after aggregation - checking individual components...`
-      );
-    }
+    });
 
     return res.status(200).json(
       new ApiResponse(
         200,
         {
-          tourists: activeTourists,
-          count: activeTourists.length,
+          tourists: validTrips, // Show all valid tourists
+          count: validTrips.length,
+          total_active_trips: activeTrips.length,
           admin_jurisdiction: {
             role: req.admin.role,
             zones: adminZones,
@@ -275,6 +208,7 @@ const getActiveTourists = asyncHandler(async (req, res) => {
       )
     );
   } catch (error) {
+    console.error('❌ Error in getActiveTourists:', error);
     throw new ApiError(
       500,
       `Failed to fetch active tourists: ${error.message}`
@@ -346,6 +280,13 @@ const getGeofenceData = asyncHandler(async (req, res) => {
   const adminZones = req.admin.assigned_zones || [];
 
   try {
+    console.log('🗺️ Geofence request from admin:', {
+      adminId: req.admin._id,
+      role: req.admin.role,
+      jurisdiction: req.admin.jurisdiction,
+      assigned_zones: adminZones
+    });
+
     // Build filter based on admin jurisdiction
     let filter = {};
 
@@ -355,7 +296,14 @@ const getGeofenceData = asyncHandler(async (req, res) => {
       !adminZones.includes("all")
     ) {
       filter.zone_id = { $in: adminZones };
+      console.log('🔍 Applied zone filter:', filter);
+    } else {
+      console.log('✅ Admin has full access to all geofences');
     }
+
+    // First, let's check total geofences in database
+    const totalGeofences = await Geofence.countDocuments();
+    console.log('📊 Total geofences in database:', totalGeofences);
 
     // Get geofences with recent violation counts
     const geofences = await Geofence.aggregate([
@@ -383,11 +331,14 @@ const getGeofenceData = asyncHandler(async (req, res) => {
         $project: {
           zone_id: 1,
           zone_name: 1,
+          name: 1,
           zone_type: 1,
           coordinates: 1,
-          center_lat: 1,
-          center_lng: 1,
-          radius: 1,
+          latitude: 1,
+          longitude: 1,
+          center_lat: "$latitude", // Map latitude to center_lat for frontend compatibility
+          center_lng: "$longitude", // Map longitude to center_lng for frontend compatibility
+          radius: "$radius_km",
           risk_level: 1,
           description: 1,
           is_active: 1,
@@ -400,6 +351,11 @@ const getGeofenceData = asyncHandler(async (req, res) => {
         },
       },
     ]);
+
+    console.log('🎯 Found geofences after filter:', geofences.length);
+    if (geofences.length > 0) {
+      console.log('📍 Sample geofence:', geofences[0]);
+    }
 
     return res.status(200).json(
       new ApiResponse(
@@ -425,11 +381,11 @@ const getGeofenceData = asyncHandler(async (req, res) => {
 // GET LIVE MAP DATA (Combined endpoint for real-time map)
 const getLiveMapData = asyncHandler(async (req, res) => {
   try {
-    // First check total active trips
+    // First check total active trips (including recently completed)
     const totalActiveTrips = await Trip.countDocuments({
-      status: "active",
+      status: { $in: ["active", "completed"] },
       start_date: { $lte: new Date() },
-      end_date: { $gte: new Date() },
+      end_date: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
     });
 
     console.log(`Debug LiveMap: Total active trips: ${totalActiveTrips}`);
@@ -438,9 +394,9 @@ const getLiveMapData = asyncHandler(async (req, res) => {
     const tourists = await Trip.aggregate([
       {
         $match: {
-          status: "active",
+          status: { $in: ["active", "completed"] },
           start_date: { $lte: new Date() },
-          end_date: { $gte: new Date() },
+          end_date: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
         },
       },
       {
@@ -460,7 +416,6 @@ const getLiveMapData = asyncHandler(async (req, res) => {
             {
               $match: {
                 $expr: { $eq: ["$tourist_id", "$$touristId"] },
-                // Removed timestamp filter to get any location data
               },
             },
             { $sort: { timestamp: -1 } },
@@ -515,11 +470,11 @@ const getLiveMapData = asyncHandler(async (req, res) => {
         `Debug: No tourists found in live map data - investigating...`
       );
 
-      // Check trips without tourist lookup
+      // Check trips without tourist lookup (including recently completed)
       const tripsOnly = await Trip.find({
-        status: "active",
+        status: { $in: ["active", "completed"] },
         start_date: { $lte: new Date() },
-        end_date: { $gte: new Date() },
+        end_date: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
       }).limit(3);
 
       console.log(

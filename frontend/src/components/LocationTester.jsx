@@ -249,11 +249,11 @@ const LocationTester = ({ selectedTrip, onClose }) => {
     try {
       setLoadingLocationInfo(true);
 
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&accept-language=en`
-      );
-      const data = await response.json();
-
+      const response = await api.get(`/geocoding/reverse`, {
+        params: { lat, lng },
+      });
+      const data = response.data.data;
+      
       if (data && data.address) {
         const locationData = {
           area:

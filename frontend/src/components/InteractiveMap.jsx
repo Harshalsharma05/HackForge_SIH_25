@@ -6,9 +6,13 @@ import {
   Popup,
   Circle,
   useMapEvents,
+  useMap,
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+
+// Import heatmap plugin
+import "leaflet.heat";
 
 // Custom marker icons
 const createCustomIcon = (color) => {
@@ -17,6 +21,17 @@ const createCustomIcon = (color) => {
     html: `<div style="background-color: ${color}; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
     iconSize: [20, 20],
     iconAnchor: [10, 10],
+  });
+};
+
+// Smaller alert icons to match geofence scale
+const createAlertIcon = (color, alertType) => {
+  const iconSymbol = alertType === 'panic' ? '⚠️' : alertType === 'anomaly' ? '🚨' : '🔔';
+  return L.divIcon({
+    className: "alert-marker",
+    html: `<div style="background-color: ${color}; width: 16px; height: 16px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; font-size: 8px;">${iconSymbol}</div>`,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
   });
 };
 
@@ -44,6 +59,88 @@ const getAlertMarkerColor = (severity) => {
   }
 };
 
+// Heatmap Component
+const HeatmapLayer = ({ heatmapData }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    console.log('🔥 Heatmap useEffect called with data:', heatmapData);
+    console.log('🔥 Map object:', map);
+    console.log('🔥 Map container:', map.getContainer());
+    console.log('🔥 Map size:', map.getSize());
+    
+    if (!heatmapData || heatmapData.length === 0) {
+      console.log('❌ No heatmap data available');
+      return;
+    }
+    
+    let heatLayer = null;
+    
+    // Wait for map to be fully loaded and sized
+    const timeout = setTimeout(() => {
+      const container = map.getContainer();
+      console.log('🔥 Container dimensions:', {
+        offsetHeight: container.offsetHeight,
+        offsetWidth: container.offsetWidth,
+        clientHeight: container.clientHeight,
+        clientWidth: container.clientWidth
+      });
+      
+      if (container.offsetHeight > 0 && container.offsetWidth > 0) {
+        try {
+          // Convert heatmap data to leaflet.heat format
+          const heatPoints = heatmapData.map(point => [
+            parseFloat(point.lat),
+            parseFloat(point.lng),
+            parseFloat(point.intensity || 1.0) // Intensity value
+          ]);
+
+          console.log('🔥 Final heatmap points for rendering:', heatPoints);
+
+          heatLayer = L.heatLayer(heatPoints, {
+            radius: 35,     // Even larger radius
+            blur: 35,       // More blur
+            maxZoom: 18,
+            minOpacity: 0.5, // Higher minimum opacity
+            max: 1.0,
+            gradient: {
+              0.4: 'blue',
+              0.6: 'cyan', 
+              0.7: 'lime',
+              0.8: 'yellow',
+              1.0: 'red'
+            }
+          });
+          
+          console.log('🔥 Created heatLayer:', heatLayer);
+          
+          map.addLayer(heatLayer);
+          console.log('🔥 Heatmap layer added successfully with enhanced visibility');
+          console.log('🔥 Map layers after adding heatmap:', map._layers);
+          
+        } catch (error) {
+          console.error('❌ Error adding heatmap:', error);
+        }
+      } else {
+        console.log('❌ Map container not ready for heatmap - dimensions:', {
+          height: container.offsetHeight,
+          width: container.offsetWidth
+        });
+      }
+    }, 100); // Increased timeout
+    
+    return () => {
+      clearTimeout(timeout);
+      if (heatLayer && map.hasLayer(heatLayer)) {
+        console.log('🧹 Removing heatmap layer');
+        map.removeLayer(heatLayer);
+      }
+    };
+  }, [heatmapData, map]);
+
+  return null;
+};
+
 const MapClickHandler = ({ onMapClick }) => {
   useMapEvents({
     click: (e) => {
@@ -57,6 +154,7 @@ const InteractiveMap = ({
   tourists = [],
   geofences = [],
   alerts = [],
+  heatmapData = [], // Add heatmap data prop
   selectedTourist,
   onTouristSelect,
   onMapClick,
@@ -73,36 +171,32 @@ const InteractiveMap = ({
     try {
       setLoadingLocation((prev) => ({ ...prev, [touristId]: true }));
 
-      // Using OpenStreetMap's Nominatim API for reverse geocoding
+      // Use backend geocoding endpoint to avoid CORS issues
+      const token = localStorage.getItem('authToken');
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&accept-language=en`
+        `http://localhost:3000/api/v1/geocoding/reverse?lat=${lat}&lng=${lng}`,
+        {
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
       );
-      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const result = await response.json();
+      const data = result.data;
 
-      if (data && data.address) {
+      if (data) {
         const locationData = {
-          area:
-            data.address.suburb ||
-            data.address.neighbourhood ||
-            data.address.locality ||
-            data.address.village ||
-            data.address.town ||
-            data.address.city_district ||
-            data.address.city ||
-            "Unknown Area",
-          city:
-            data.address.city ||
-            data.address.town ||
-            data.address.village ||
-            data.address.municipality ||
-            "Unknown City",
-          state:
-            data.address.state ||
-            data.address.state_district ||
-            "Unknown State",
-          country: data.address.country || "Unknown Country",
-          postcode: data.address.postcode || "",
-          display_name: data.display_name || "Unknown Location",
+          area: data.area,
+          city: data.city,
+          state: data.state,
+          country: data.country,
+          display_name: data.display_name,
         };
 
         setLocationInfo((prev) => ({
@@ -169,12 +263,18 @@ const InteractiveMap = ({
 
   const getGeofenceColor = (riskLevel) => {
     switch (riskLevel) {
+      case "critical":
+        return "#d32f2f"; // Dark red
       case "high":
-        return "#f44336";
+        return "#f44336"; // Red
       case "medium":
-        return "#ff9800";
+        return "#ff9800"; // Orange
+      case "low":
+        return "#2196f3"; // Blue
+      case "very_low":
+        return "#4caf50"; // Green
       default:
-        return "#4caf50";
+        return "#9e9e9e"; // Gray for unknown
     }
   };
 
@@ -207,18 +307,37 @@ const InteractiveMap = ({
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
       />
 
+      {/* Add Heatmap Layer */}
+      <HeatmapLayer heatmapData={heatmapData} />
+
       {onMapClick && <MapClickHandler onMapClick={onMapClick} />}
 
       {/* Render geofences */}
-      {geofences
-        .filter((fence) => {
+      {(() => {
+        const validGeofences = geofences.filter((fence) => {
           const lat = fence.center_lat || fence.latitude;
           const lng = fence.center_lng || fence.longitude;
-          return (
-            lat !== undefined && lng !== undefined && !isNaN(lat) && !isNaN(lng)
-          );
-        })
-        .map((fence) => (
+          const isValid = lat !== undefined && lng !== undefined && !isNaN(lat) && !isNaN(lng);
+          
+          if (!isValid) {
+            console.log('🚫 Invalid geofence:', {
+              id: fence._id,
+              name: fence.name,
+              center_lat: fence.center_lat,
+              latitude: fence.latitude,
+              center_lng: fence.center_lng,
+              longitude: fence.longitude,
+              computed_lat: lat,
+              computed_lng: lng
+            });
+          }
+          
+          return isValid;
+        });
+        
+        console.log(`✅ Rendering ${validGeofences.length} valid geofences out of ${geofences.length} total`);
+        
+        return validGeofences.map((fence) => (
           <Circle
             key={fence._id}
             center={[
@@ -253,20 +372,38 @@ const InteractiveMap = ({
               </div>
             </Popup>
           </Circle>
-        ))}
+        ));
+      })()}
 
       {/* Render tourists */}
-      {tourists
-        .filter((tourist) => {
-          return (
-            tourist.location &&
+      {(() => {
+        console.log('🧑‍🎤 Total tourists received in InteractiveMap:', tourists.length);
+        console.log('🧑‍🎤 Raw tourists data:', tourists);
+        
+        const filteredTourists = tourists.filter((tourist) => {
+          const hasLocation = tourist.location &&
             tourist.location.latitude !== undefined &&
             tourist.location.longitude !== undefined &&
             !isNaN(tourist.location.latitude) &&
-            !isNaN(tourist.location.longitude)
-          );
-        })
-        .map((tourist) => (
+            !isNaN(tourist.location.longitude);
+          
+          if (!hasLocation) {
+            console.log('❌ Tourist filtered out (no valid location):', tourist);
+          } else {
+            console.log('✅ Valid tourist for rendering:', {
+              id: tourist.trip_id,
+              name: tourist.tourist?.name,
+              location: tourist.location,
+              status: tourist.status
+            });
+          }
+          
+          return hasLocation;
+        });
+        
+        console.log('🎯 Tourists to render on map:', filteredTourists.length);
+        
+        return filteredTourists.map((tourist) => (
           <Marker
             key={tourist.trip_id}
             position={[tourist.location.latitude, tourist.location.longitude]}
@@ -437,42 +574,76 @@ const InteractiveMap = ({
               </div>
             </Popup>
           </Marker>
-        ))}
+        ));
+      })()}
+
       {/* Render alerts */}
-      {alerts
-        .filter((alert) => alert.latitude && alert.longitude)
-        .map((alert) => (
-          <Marker
-            key={alert._id}
-            position={[alert.latitude, alert.longitude]}
-            icon={createCustomIcon(getAlertMarkerColor(alert.severity))}
-          >
-            <Popup>
-              <div>
-                <h4>{alert.title}</h4>
-                <p>
-                  <strong>Type:</strong> {alert.type}
-                </p>
-                <p>
-                  <strong>Severity:</strong> {alert.severity}
-                </p>
-                <p>
-                  <strong>Status:</strong> {alert.status}
-                </p>
-                <p>
-                  <strong>Reported At:</strong>{" "}
-                  {new Date(alert.timestamp).toLocaleString()}
-                </p>
-                {alert.tourist_id?.name && (
+      {(() => {
+        console.log('🚨 Total alerts for map rendering:', alerts.length);
+        console.log('🚨 Alert data sample:', alerts.slice(0, 2));
+        
+        const alertsWithLocation = alerts.filter((alert) => {
+          const hasLocation = (alert.latitude && alert.longitude) || 
+                             (alert.location?.latitude && alert.location?.longitude);
+          
+          if (!hasLocation) {
+            console.log('❌ Alert without location:', { 
+              id: alert._id, 
+              type: alert.type, 
+              has_lat: !!alert.latitude,
+              has_lng: !!alert.longitude,
+              has_location_obj: !!alert.location
+            });
+          }
+          
+          return hasLocation;
+        });
+        
+        console.log(`🎯 Alerts to render on map: ${alertsWithLocation.length} out of ${alerts.length}`);
+        
+        return alertsWithLocation.map((alert) => {
+          const lat = alert.latitude || alert.location?.latitude;
+          const lng = alert.longitude || alert.location?.longitude;
+          
+          return (
+            <Marker
+              key={alert._id}
+              position={[lat, lng]}
+              icon={createAlertIcon(getAlertMarkerColor(alert.severity), alert.alert_type || alert.type)}
+            >
+              <Popup>
+                <div>
+                  <h4>{alert.title || `${alert.type} Alert`}</h4>
                   <p>
-                    <strong>Tourist:</strong> {alert.tourist_id.name} (
-                    {alert.tourist_id.phone})
+                    <strong>Type:</strong> {alert.type || alert.alert_type}
                   </p>
-                )}
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+                  <p>
+                    <strong>Severity:</strong> {alert.severity}
+                  </p>
+                  <p>
+                    <strong>Status:</strong> {alert.status}
+                  </p>
+                  <p>
+                    <strong>Reported At:</strong>{" "}
+                    {new Date(alert.timestamp || alert.created_at).toLocaleString()}
+                  </p>
+                  {alert.tourist_id?.name && (
+                    <p>
+                      <strong>Tourist:</strong> {alert.tourist_id.name} (
+                      {alert.tourist_id.phone})
+                    </p>
+                  )}
+                  {alert.description && (
+                    <p>
+                      <strong>Description:</strong> {alert.description}
+                    </p>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          );
+        });
+      })()}
     </MapContainer>
   );
 };

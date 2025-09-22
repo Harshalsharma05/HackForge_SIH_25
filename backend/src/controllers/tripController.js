@@ -2,6 +2,8 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import Trip from "../models/trip.js";
 import Tourist from "../models/tourist.js";
 import DigitalId from "../models/digitalId.js";
+import Location from "../models/location.js";
+import Alert from "../models/alerts.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import BlockchainService from "../services/blockchainService.js";
@@ -416,17 +418,26 @@ const activateTrip = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Trip not found");
   }
 
-  if (trip.status !== "planned") {
+  console.log(`🔄 Trip activation request for trip ${tripId}:`, {
+    current_status: trip.status,
+    start_date: trip.start_date,
+    end_date: trip.end_date,
+    now: new Date()
+  });
+
+  // Allow activation for planned trips, or reactivation of recently completed trips
+  if (!["planned", "completed"].includes(trip.status)) {
     throw new ApiError(
       400,
-      "Trip can only be activated if it's in planned status"
+      `Trip can only be activated if it's in planned or completed status. Current status: ${trip.status}`
     );
   }
 
-  // Check if there's already an active trip
+  // Check if there's already an active trip (different from this one)
   const activeTrip = await Trip.findOne({
     tourist_id: req.tourist._id,
     status: "active",
+    _id: { $ne: tripId }
   });
 
   if (activeTrip) {
@@ -440,6 +451,8 @@ const activateTrip = asyncHandler(async (req, res) => {
   trip.status = "active";
   trip.activated_at = new Date();
   await trip.save();
+
+  console.log(`✅ Trip ${tripId} activated successfully`);
 
   // Update tourist's current trip
   const tourist = await Tourist.findById(req.tourist._id);
@@ -729,6 +742,41 @@ const getTouristTripDetails = asyncHandler(async (req, res) => {
   }
 });
 
+// DELETE TRIP
+const deleteTrip = asyncHandler(async (req, res) => {
+  const { tripId } = req.params;
+
+  const trip = await Trip.findOne({
+    _id: tripId,
+    tourist_id: req.tourist._id,
+  });
+
+  if (!trip) {
+    throw new ApiError(404, "Trip not found");
+  }
+
+  // Only allow deletion of planned or completed trips, not active ones
+  if (trip.status === "active") {
+    throw new ApiError(
+      400,
+      "Cannot delete an active trip. Complete the trip first."
+    );
+  }
+
+  // Delete related data
+  await Location.deleteMany({ trip_id: tripId });
+  await Alert.deleteMany({ trip_id: tripId });
+  
+  // Delete the trip
+  await Trip.findByIdAndDelete(tripId);
+
+  console.log(`🗑️ Trip ${tripId} deleted successfully`);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, null, "Trip deleted successfully"));
+});
+
 export {
   createTrip,
   getTouristTrips,
@@ -737,6 +785,7 @@ export {
   updateTrip,
   activateTrip,
   completeTrip,
+  deleteTrip,
   verifyTripDigitalId,
   getBlockchainDigitalId,
   getTouristTripDetails,

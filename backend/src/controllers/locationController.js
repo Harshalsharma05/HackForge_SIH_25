@@ -5,6 +5,7 @@ import GeoFence from "../models/geofence.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { checkLocationForAnomalies } from "../utils/aiService.js";
+import Alert from "../models/alerts.js";
 
 // Calculate distance between two coordinates (Haversine formula)
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -161,22 +162,57 @@ const updateLocation = async (locationData) => {
     } = locationData;
 
     // Verify trip exists and is active
+    console.log('🔍 Looking for trip with:', { trip_id, tourist_id });
+    
     const trip = await Trip.findOne({
       _id: trip_id,
-      tourist_id,
-      status: "active",
-      tracking_enabled: true,
-    });
+      status: { $in: ["active", "completed"] }
+      // Allow both active and recently completed trips for location updates
+      // Remove tracking_enabled requirement for now since it might not exist on existing trips
+    }).populate('tourist_id');
 
     if (!trip) {
+      console.error(`❌ Trip not found:`, { trip_id, tourist_id });
+      
+      // Let's debug what trips exist for this tourist
+      const touristTrips = await Trip.find({ tourist_id }).select('_id status tracking_enabled');
+      console.log(`🔍 Available trips for tourist ${tourist_id}:`, touristTrips);
+      
       throw new Error("Trip not found or tracking not enabled");
     }
+
+    console.log(`✅ Found trip:`, { 
+      trip_id: trip._id, 
+      digital_id: trip.digital_id, 
+      tourist: trip.tourist_id?.name,
+      status: trip.status,
+      tracking_enabled: trip.tracking_enabled
+    });
 
     // Check geo-fences
     const geoFenceCheck = await checkGeoFences(
       coordinates.latitude,
       coordinates.longitude
     );
+
+    if (geoFenceCheck.violations.length > 0) {
+      const violation = geoFenceCheck.violations[0]; // Handle the first violation for simplicity
+      await Alert.create({
+        tourist_id: tourist_id,
+        trip_id: trip_id,
+        type: "geo_fence",
+        title: `Geofence Violation: ${violation.fence_name}`,
+        description: `Tourist entered a ${violation.zone_type} with risk level: ${violation.risk_level}.`,
+        severity: violation.risk_level === "critical" ? "critical" : "high",
+        latitude: coordinates.latitude,
+        longitude: coordinates.longitude,
+        metadata: {
+          automatic_trigger: true,
+          geofence_id: violation.fence_id,
+        },
+      });
+      console.log(`⚠️ Geofence violation alert created for tourist ${tourist_id}`);
+    }
 
     // Create location record
     const location = await Location.create({

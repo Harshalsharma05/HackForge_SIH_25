@@ -7,6 +7,7 @@ import {
   updateTrip,
   activateTrip,
   completeTrip,
+  deleteTrip,
   verifyTripDigitalId,
   getBlockchainDigitalId,
   getTouristTripDetails,
@@ -20,6 +21,7 @@ router.route("/create").post(verifyJWT, createTrip);
 router.route("/my-trips").get(verifyJWT, getTouristTrips);
 router.route("/current").get(verifyJWT, getCurrentTrip);
 router.route("/:tripId").get(verifyJWT, getTripById);
+router.route("/:tripId").delete(verifyJWT, deleteTrip);
 router.route("/:tripId/update").patch(verifyJWT, updateTrip);
 router.route("/:tripId/activate").post(verifyJWT, activateTrip);
 router.route("/:tripId/complete").post(verifyJWT, completeTrip);

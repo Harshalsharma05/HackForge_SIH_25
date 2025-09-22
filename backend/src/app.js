@@ -28,7 +28,8 @@ import kycRoutes from "./routes/kycRoutes.js";
 import blockchainRoutes from "./routes/blockchainRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
-import fetchAlertRoutes from "./routes/fetchAlertRoutes.js"
+import fetchAlertRoutes from "./routes/fetchAlertRoutes.js";
+import geocodingRoutes from "./routes/geocodingRoutes.js";
 
 // Route declarations
 app.use("/api/v1/auth", authRoutes);
@@ -40,7 +41,8 @@ app.use("/api/v1/kyc", kycRoutes);
 app.use("/api/v1/blockchain", blockchainRoutes);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/dashboard", dashboardRoutes);
-app.use("/api/v1/fetchalerts" , fetchAlertRoutes)
+app.use("/api/v1/fetchalerts", fetchAlertRoutes);
+app.use("/api/v1/geocoding", geocodingRoutes);
 
 app.get("/", (req, res) => {
   res.send("Tourist Safety System API is running....");
